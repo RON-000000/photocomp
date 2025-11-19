@@ -2,11 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { getCompetitionById, getSubmissionsByCompetitionId } from '$lib/api.js';
-	import { getDaysUntilDeadline, formatDate } from '$lib/data/mockData';
+	import { formatDate } from '$lib/data/mockData';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
 	import Leaderboard from '$lib/components/Leaderboard.svelte';
 	import CommentSection from '$lib/components/CommentSection.svelte';
 	import VotingPanel from '$lib/components/VotingPanel.svelte';
+	import { Calendar, Users, Image, Award, FileText, Scale, Upload, X } from 'lucide-svelte';
 	
 	let competition = null;
 	let submissions = [];
@@ -15,7 +16,6 @@
 	let selectedSubmission = null;
 	
 	$: competitionId = $page.params.id;
-	$: daysLeft = competition ? getDaysUntilDeadline(competition.deadline) : 0;
 	
 	onMount(async () => {
 		await loadData();
@@ -38,11 +38,28 @@
 	
 	function openSubmissionDetail(submission) {
 		selectedSubmission = submission;
+		document.body.style.overflow = 'hidden';
 	}
 	
 	function closeSubmissionDetail() {
 		selectedSubmission = null;
+		document.body.style.overflow = 'auto';
 	}
+	
+	// Berechne Status basierend auf Datum
+	function getStatus(comp) {
+		const now = new Date();
+		const deadline = new Date(comp.deadline);
+		
+		if (now > deadline) return 'completed';
+		return comp.status || 'active';
+	}
+	
+	$: currentStatus = competition ? getStatus(competition) : null;
+	$: statusBadge = currentStatus === 'active' ? 'success' : 
+	                 currentStatus === 'voting' ? 'warning' : 'primary';
+	$: statusText = currentStatus === 'active' ? 'AKTIV' : 
+	                currentStatus === 'voting' ? 'VOTING' : 'BEENDET';
 </script>
 
 <svelte:head>
@@ -57,109 +74,67 @@
 {:else if error}
 	<div class="container">
 		<div class="error-state">
-			<h2>❌ Fehler</h2>
+			<h2>Fehler</h2>
 			<p>{error}</p>
 			<a href="/competitions" class="btn btn-primary">Zurück zu Wettbewerben</a>
 		</div>
 	</div>
 {:else if competition}
-	<div class="competition-hero" style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url({competition.imageUrl})">
+	<!-- Hero Section -->
+	<section class="competition-hero">
+		<div class="hero-image">
+			<img src={competition.imageUrl} alt={competition.title} />
+			<div class="hero-overlay"></div>
+		</div>
 		<div class="container">
 			<div class="hero-content">
 				<div class="status-badge">
-					<span class="badge badge-{competition.status === 'active' ? 'success' : competition.status === 'voting' ? 'warning' : 'primary'}">
-						{competition.status === 'active' ? 'Aktiv' : competition.status === 'voting' ? 'Voting' : 'Abgeschlossen'}
-					</span>
+					<span class="badge badge-{statusBadge}">{statusText}</span>
 				</div>
 				<h1>{competition.title}</h1>
-				<p class="hero-description">{competition.description}</p>
-				
-				<div class="hero-meta">
-					<div class="meta-item">
-						<span class="icon">🎨</span>
-						<span>{competition.theme}</span>
-					</div>
-					<div class="meta-item">
-						<span class="icon">👥</span>
-						<span>{competition.participantCount} Teilnehmer</span>
-					</div>
-					<div class="meta-item">
-						<span class="icon">📸</span>
-						<span>{competition.submissionCount} Submissions</span>
-					</div>
-					{#if competition.status !== 'completed'}
-						<div class="meta-item">
-							<span class="icon">⏰</span>
-							<span>
-								{#if daysLeft > 0}
-									Noch {daysLeft} Tag{daysLeft === 1 ? '' : 'e'}
-								{:else if daysLeft === 0}
-									Endet heute!
-								{:else}
-									Abgelaufen
-								{/if}
-							</span>
-						</div>
-					{/if}
-				</div>
-				
-				{#if competition.status === 'active'}
-					<a href="/submit?competition={competition._id}" class="btn btn-primary btn-lg">
-						Foto einreichen
-					</a>
-				{/if}
+				<p class="hero-subtitle">{competition.description}</p>
 			</div>
 		</div>
-	</div>
+	</section>
 	
 	<div class="container">
-		<div class="competition-content">
-			<!-- Sidebar -->
-			<aside class="sidebar">
-				<div class="info-card">
-					<h3>ℹ️ Details</h3>
-					
-					<div class="info-item">
-						<strong>Start:</strong>
-						<span>{formatDate(competition.startDate)}</span>
-					</div>
-					<div class="info-item">
-						<strong>Deadline:</strong>
-						<span>{formatDate(competition.deadline)}</span>
-					</div>
-					
-					<div class="divider"></div>
-					
-					<h4>🏅 Preise</h4>
-					<ul class="prizes-list">
-						{#each competition.prizes as prize}
-							<li>{prize}</li>
-						{/each}
-					</ul>
-					
-					<div class="divider"></div>
-					
-					<h4>📜 Regeln</h4>
-					<ul class="rules-list">
-						{#each competition.rules as rule}
-							<li>{rule}</li>
-						{/each}
-					</ul>
-					
-					{#if competition.juryMembers && competition.juryMembers.length > 0}
-						<div class="divider"></div>
-						<h4>👨‍⚖️ Jury</h4>
-						<ul class="jury-list">
-							{#each competition.juryMembers as juryMember}
-								<li>@{juryMember}</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-			</aside>
-			
+		<div class="content-wrapper">
 			<!-- Main Content -->
-			<main class="main-content">
+			<div class="main-content">
+				<!-- Stats Section -->
+				<div class="stats-section">
+					<div class="stat-item">
+						<Calendar size={20} />
+						<div>
+							<div class="stat-label">Deadline</div>
+							<div class="stat-value">{formatDate(competition.deadline)}</div>
+						</div>
+					</div>
+					<div class="stat-item">
+						<Users size={20} />
+						<div>
+							<div class="stat-label">Teilnehmer</div>
+							<div class="stat-value">{competition.participantCount || 0}</div>
+						</div>
+					</div>
+					<div class="stat-item">
+						<Image size={20} />
+						<div>
+							<div class="stat-label">Submissions</div>
+							<div class="stat-value">{competition.submissionCount || 0}</div>
+						</div>
+					</div>
+				</div>
+				
+				{#if currentStatus === 'active'}
+					<div class="cta-section">
+						<a href="/submit?competition={competition._id}" class="btn btn-primary btn-lg">
+							<Upload size={20} />
+							<span>Foto einreichen</span>
+						</a>
+					</div>
+				{/if}
+				
 				<!-- Leaderboard -->
 				<section class="section">
 					<Leaderboard competitionId={competition._id} {submissions} {competition} />
@@ -167,35 +142,114 @@
 				
 				<!-- Submissions Gallery -->
 				<section class="section">
-					<h2>📸 Alle Submissions ({submissions.length})</h2>
-					
-					<div class="grid grid-3">
-						{#each submissions as submission}
-							<div on:click={() => openSubmissionDetail(submission)} on:keydown={(e) => e.key === 'Enter' && openSubmissionDetail(submission)} role="button" tabindex="0">
-								<SubmissionCard {submission} showVoting={competition.status === 'voting'} />
-							</div>
-						{/each}
+					<div class="section-header">
+						<h2>Alle Submissions</h2>
+						<span class="count">{submissions.length}</span>
 					</div>
 					
-					{#if submissions.length === 0}
+					{#if submissions.length > 0}
+						<div class="submissions-grid">
+							{#each submissions as submission}
+								<button 
+									class="submission-wrapper"
+									on:click={() => openSubmissionDetail(submission)}
+								>
+									<SubmissionCard {submission} showVoting={currentStatus === 'voting'} />
+								</button>
+							{/each}
+						</div>
+					{:else}
 						<div class="empty-state">
-							<p>Noch keine Submissions. Sei der Erste! 🎉</p>
-							<a href="/submit?competition={competition._id}" class="btn btn-primary">
-								Foto einreichen
-							</a>
+							<p>Noch keine Submissions.</p>
+							{#if currentStatus === 'active'}
+								<a href="/submit?competition={competition._id}" class="btn btn-primary">
+									Sei der Erste!
+								</a>
+							{/if}
 						</div>
 					{/if}
 				</section>
-			</main>
+			</div>
+			
+			<!-- Sidebar -->
+			<aside class="sidebar">
+				<div class="info-card">
+					<h3>
+						<FileText size={20} />
+						<span>Details</span>
+					</h3>
+					
+					<div class="info-section">
+						<div class="info-label">Thema</div>
+						<div class="info-value">{competition.theme}</div>
+					</div>
+					
+					<div class="info-section">
+						<div class="info-label">Start</div>
+						<div class="info-value">{formatDate(competition.startDate)}</div>
+					</div>
+					
+					<div class="info-section">
+						<div class="info-label">Deadline</div>
+						<div class="info-value">{formatDate(competition.deadline)}</div>
+					</div>
+				</div>
+				
+				<div class="info-card">
+					<h3>
+						<Award size={20} />
+						<span>Preise</span>
+					</h3>
+					
+					<ul class="prizes-list">
+						{#each competition.prizes as prize, index}
+							<li>
+								<span class="prize-position">{index + 1}.</span>
+								<span>{prize}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+				
+				<div class="info-card">
+					<h3>
+						<Scale size={20} />
+						<span>Regeln</span>
+					</h3>
+					
+					<ul class="rules-list">
+						{#each competition.rules as rule}
+							<li>{rule}</li>
+						{/each}
+					</ul>
+				</div>
+				
+				{#if competition.juryMembers && competition.juryMembers.length > 0}
+					<div class="info-card">
+						<h3>
+							<Users size={20} />
+							<span>Jury</span>
+						</h3>
+						
+						<ul class="jury-list">
+							{#each competition.juryMembers as juryMember}
+								<li>@{juryMember}</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			</aside>
 		</div>
 	</div>
 	
 	<!-- Submission Detail Modal -->
 	{#if selectedSubmission}
 		<div class="modal-overlay" on:click={closeSubmissionDetail} on:keydown={(e) => e.key === 'Escape' && closeSubmissionDetail()} role="button" tabindex="0">
+			<button class="close-btn" on:click={closeSubmissionDetail}>
+				<X size={24} />
+			</button>
+			
 			<div class="modal-content" on:click|stopPropagation on:keydown|stopPropagation role="dialog" tabindex="-1">
-				<button class="close-btn" on:click={closeSubmissionDetail}>✕</button>
-				
 				<div class="modal-grid">
 					<div class="modal-image">
 						<img src={selectedSubmission.imageUrl} alt={selectedSubmission.title} />
@@ -203,9 +257,7 @@
 					
 					<div class="modal-sidebar">
 						<VotingPanel submission={selectedSubmission} />
-						<div class="mt-3">
-							<CommentSection submission={selectedSubmission} />
-						</div>
+						<CommentSection submission={selectedSubmission} />
 					</div>
 				</div>
 			</div>
@@ -225,97 +277,225 @@
 	/* Loading & Error States */
 	.loading-state {
 		text-align: center;
-		padding: var(--spacing-3xl);
-		min-height: 50vh;
+		padding: var(--spacing-4xl);
+		min-height: 60vh;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		gap: var(--spacing-lg);
 	}
 	
 	.loading-state p {
-		margin-top: var(--spacing-md);
 		color: var(--color-text-secondary);
+		margin: 0;
 	}
 	
 	.error-state {
 		text-align: center;
-		padding: var(--spacing-3xl);
+		padding: var(--spacing-4xl);
 		min-height: 50vh;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		gap: var(--spacing-lg);
 	}
 	
 	.error-state h2 {
-		margin-bottom: var(--spacing-md);
+		margin-bottom: var(--spacing-sm);
 	}
 	
 	.error-state p {
-		margin-bottom: var(--spacing-xl);
 		color: var(--color-text-secondary);
+		margin: 0;
 	}
 	
 	/* Hero Section */
 	.competition-hero {
-		background-size: cover;
-		background-position: center;
-		color: white;
-		padding: var(--spacing-3xl) 0;
-		margin-bottom: var(--spacing-3xl);
+		position: relative;
+		margin-bottom: var(--spacing-4xl);
+	}
+	
+	.hero-image {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 500px;
+		overflow: hidden;
+	}
+	
+	.hero-image img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	
+	.hero-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
 	}
 	
 	.hero-content {
+		position: relative;
+		padding-top: 200px;
+		padding-bottom: var(--spacing-3xl);
+		color: white;
 		max-width: 800px;
 	}
 	
 	.status-badge {
-		margin-bottom: var(--spacing-md);
+		margin-bottom: var(--spacing-lg);
 	}
 	
 	.hero-content h1 {
-		color: white;
 		font-size: 3rem;
+		font-weight: 700;
 		margin-bottom: var(--spacing-md);
+		color: white;
+		letter-spacing: -0.03em;
 		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 	}
 	
-	.hero-description {
+	.hero-subtitle {
 		font-size: 1.25rem;
-		margin-bottom: var(--spacing-xl);
+		line-height: 1.6;
 		color: rgba(255, 255, 255, 0.95);
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	}
-	
-	.hero-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-lg);
-		margin-bottom: var(--spacing-xl);
-	}
-	
-	.meta-item {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		background: rgba(255, 255, 255, 0.2);
-		padding: var(--spacing-sm) var(--spacing-md);
-		border-radius: var(--radius-md);
-		backdrop-filter: blur(10px);
-	}
-	
-	.meta-item .icon {
-		font-size: 1.125rem;
+		margin: 0;
 	}
 	
 	/* Content Layout */
-	.competition-content {
+	.content-wrapper {
 		display: grid;
-		grid-template-columns: 300px 1fr;
+		grid-template-columns: 1fr 360px;
+		gap: var(--spacing-3xl);
+		margin-top: var(--spacing-4xl);
+	}
+	
+	.main-content {
+		min-width: 0;
+	}
+	
+	/* Stats Section */
+	.stats-section {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--spacing-lg);
+		margin-bottom: var(--spacing-3xl);
+	}
+	
+	.stat-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding: var(--spacing-xl);
+		background: white;
+		border-radius: var(--radius-lg);
+		border: 1px solid var(--color-border);
+	}
+	
+	.stat-item :global(svg) {
+		color: var(--color-text-muted);
+		flex-shrink: 0;
+	}
+	
+	.stat-label {
+		font-size: 0.8125rem;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		margin-bottom: 0.25rem;
+	}
+	
+	.stat-value {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--color-text-primary);
+	}
+	
+	/* CTA Section */
+	.cta-section {
+		margin-bottom: var(--spacing-3xl);
+		text-align: center;
+		padding: var(--spacing-2xl);
+		background: var(--color-surface);
+		border-radius: var(--radius-lg);
+		border: 2px dashed var(--color-border);
+	}
+	
+	.btn-lg {
+		padding: var(--spacing-md) var(--spacing-2xl);
+		font-size: 1rem;
+	}
+	
+	/* Sections */
+	.section {
+		margin-bottom: var(--spacing-4xl);
+	}
+	
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: var(--spacing-2xl);
+		padding-bottom: var(--spacing-lg);
+		border-bottom: 1px solid var(--color-border);
+	}
+	
+	.section-header h2 {
+		font-size: 1.5rem;
+		font-weight: 600;
+		margin: 0;
+	}
+	
+	.section-header .count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 32px;
+		height: 32px;
+		padding: 0 var(--spacing-sm);
+		background: var(--color-surface);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--color-text-secondary);
+	}
+	
+	/* Submissions Grid */
+	.submissions-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: var(--spacing-2xl);
 	}
 	
+	.submission-wrapper {
+		all: unset;
+		cursor: pointer;
+		display: block;
+	}
+	
+	.empty-state {
+		text-align: center;
+		padding: var(--spacing-4xl);
+		background: var(--color-surface);
+		border-radius: var(--radius-lg);
+		border: 2px dashed var(--color-border);
+	}
+	
+	.empty-state p {
+		color: var(--color-text-secondary);
+		margin-bottom: var(--spacing-xl);
+		font-size: 1.125rem;
+	}
+	
+	/* Sidebar */
 	.sidebar {
 		position: sticky;
 		top: 100px;
@@ -326,79 +506,90 @@
 		background: white;
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-xl);
-		box-shadow: var(--shadow-sm);
 		border: 1px solid var(--color-border);
-	}
-	
-	.info-card h3 {
 		margin-bottom: var(--spacing-lg);
 	}
 	
-	.info-card h4 {
+	.info-card:last-child {
+		margin-bottom: 0;
+	}
+	
+	.info-card h3 {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
 		font-size: 1rem;
-		margin-bottom: var(--spacing-md);
+		font-weight: 600;
+		margin-bottom: var(--spacing-lg);
+		padding-bottom: var(--spacing-md);
+		border-bottom: 1px solid var(--color-border);
 		color: var(--color-text-primary);
 	}
 	
-	.info-item {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: var(--spacing-sm);
-		font-size: 0.875rem;
+	.info-card h3 :global(svg) {
+		color: var(--color-text-muted);
 	}
 	
-	.info-item strong {
-		color: var(--color-text-secondary);
+	.info-section {
+		margin-bottom: var(--spacing-md);
 	}
 	
-	.prizes-list, .rules-list, .jury-list {
+	.info-section:last-child {
+		margin-bottom: 0;
+	}
+	
+	.info-label {
+		font-size: 0.8125rem;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		margin-bottom: 0.25rem;
+	}
+	
+	.info-value {
+		font-size: 0.9375rem;
+		font-weight: 500;
+		color: var(--color-text-primary);
+	}
+	
+	.prizes-list,
+	.rules-list,
+	.jury-list {
 		list-style: none;
 		padding: 0;
 		margin: 0;
 	}
 	
-	.prizes-list li, .rules-list li {
-		font-size: 0.875rem;
+	.prizes-list li,
+	.rules-list li {
+		font-size: 0.9375rem;
 		color: var(--color-text-secondary);
 		margin-bottom: var(--spacing-sm);
-		padding-left: var(--spacing-md);
-		position: relative;
+		padding: var(--spacing-sm) 0;
+		border-bottom: 1px solid var(--color-border);
 	}
 	
-	.prizes-list li::before {
-		content: "🏆";
-		position: absolute;
-		left: 0;
+	.prizes-list li:last-child,
+	.rules-list li:last-child {
+		margin-bottom: 0;
+		border-bottom: none;
 	}
 	
-	.rules-list li::before {
-		content: "•";
-		position: absolute;
-		left: 0;
+	.prizes-list li {
+		display: flex;
+		gap: var(--spacing-sm);
+	}
+	
+	.prize-position {
+		font-weight: 600;
 		color: var(--color-primary);
-		font-weight: 700;
 	}
 	
 	.jury-list li {
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 		color: var(--color-primary);
 		margin-bottom: var(--spacing-xs);
-	}
-	
-	.section {
-		margin-bottom: var(--spacing-3xl);
-	}
-	
-	.empty-state {
-		text-align: center;
-		padding: var(--spacing-3xl);
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-	}
-	
-	.empty-state p {
-		margin-bottom: var(--spacing-lg);
-		color: var(--color-text-secondary);
+		font-weight: 500;
 	}
 	
 	/* Modal */
@@ -408,12 +599,37 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: rgba(0, 0, 0, 0.9);
 		z-index: 1000;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: var(--spacing-lg);
+		backdrop-filter: blur(4px);
+	}
+	
+	.close-btn {
+		position: fixed;
+		top: var(--spacing-lg);
+		right: var(--spacing-lg);
+		background: rgba(255, 255, 255, 0.1);
+		color: white;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		cursor: pointer;
+		z-index: 1001;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		backdrop-filter: blur(10px);
+	}
+	
+	.close-btn:hover {
+		background: rgba(255, 255, 255, 0.2);
+		transform: scale(1.1);
 	}
 	
 	.modal-content {
@@ -422,52 +638,41 @@
 		max-width: 1400px;
 		width: 100%;
 		max-height: 90vh;
-		overflow: auto;
+		overflow: hidden;
 		position: relative;
-	}
-	
-	.close-btn {
-		position: absolute;
-		top: var(--spacing-lg);
-		right: var(--spacing-lg);
-		background: rgba(0, 0, 0, 0.5);
-		color: white;
-		border: none;
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		cursor: pointer;
-		font-size: 1.5rem;
-		z-index: 10;
-		transition: all 0.2s;
-	}
-	
-	.close-btn:hover {
-		background: rgba(0, 0, 0, 0.8);
-		transform: scale(1.1);
 	}
 	
 	.modal-grid {
 		display: grid;
 		grid-template-columns: 1fr 400px;
-		gap: var(--spacing-lg);
-		padding: var(--spacing-lg);
+		max-height: 90vh;
+	}
+	
+	.modal-image {
+		background: var(--color-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
 	}
 	
 	.modal-image img {
 		width: 100%;
-		height: auto;
-		border-radius: var(--radius-lg);
+		height: 100%;
+		object-fit: contain;
 	}
 	
 	.modal-sidebar {
+		overflow-y: auto;
+		padding: var(--spacing-xl);
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-xl);
 	}
 	
+	/* Mobile Optimizations */
 	@media (max-width: 1024px) {
-		.competition-content {
+		.content-wrapper {
 			grid-template-columns: 1fr;
 		}
 		
@@ -477,16 +682,61 @@
 		
 		.modal-grid {
 			grid-template-columns: 1fr;
+			max-height: none;
+		}
+		
+		.modal-image {
+			max-height: 50vh;
 		}
 	}
 	
 	@media (max-width: 768px) {
+		.hero-image {
+			height: 400px;
+		}
+		
+		.hero-content {
+			padding-top: 150px;
+			padding-bottom: var(--spacing-2xl);
+		}
+		
 		.hero-content h1 {
 			font-size: 2rem;
 		}
 		
-		.hero-description {
+		.hero-subtitle {
 			font-size: 1rem;
+		}
+		
+		.stats-section {
+			grid-template-columns: 1fr;
+			gap: var(--spacing-md);
+		}
+		
+		.submissions-grid {
+			grid-template-columns: 1fr;
+			gap: var(--spacing-xl);
+		}
+		
+		.close-btn {
+			top: var(--spacing-md);
+			right: var(--spacing-md);
+			width: 40px;
+			height: 40px;
+		}
+	}
+	
+	@media (max-width: 480px) {
+		.hero-image {
+			height: 300px;
+		}
+		
+		.hero-content {
+			padding-top: 100px;
+		}
+		
+		.hero-content h1 {
+			font-size: 1.5rem;
 		}
 	}
 </style>
