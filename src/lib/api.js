@@ -1,0 +1,118 @@
+const API_BASE = '/api';
+
+async function handleResponse(response) {
+	if (!response.ok) {
+		const error = await response.json();
+		throw new Error(error.error || 'API request failed');
+	}
+	return response.json();
+}
+
+// ==================== USERS ====================
+
+export async function getUsers() {
+	const response = await fetch(`${API_BASE}/users`);
+	return handleResponse(response);
+}
+
+export async function getUserByUsername(username) {
+	const response = await fetch(`${API_BASE}/users/${username}`);
+	return handleResponse(response);
+}
+
+export async function createUser(userData) {
+	const response = await fetch(`${API_BASE}/users`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(userData)
+	});
+	return handleResponse(response);
+}
+
+// ==================== COMPETITIONS ====================
+
+export async function getCompetitions(filter = null) {
+	const url = filter ? `${API_BASE}/competitions?filter=${filter}` : `${API_BASE}/competitions`;
+	const response = await fetch(url);
+	return handleResponse(response);
+}
+
+export async function getCompetitionById(id) {
+	const response = await fetch(`${API_BASE}/competitions/${id}`);
+	return handleResponse(response);
+}
+
+export async function getSubmissionsByCompetitionId(competitionId) {
+	const response = await fetch(`${API_BASE}/competitions/${competitionId}/submissions`);
+	return handleResponse(response);
+}
+
+// ==================== SUBMISSIONS ====================
+
+export async function createSubmission(submissionData) {
+	const response = await fetch(`${API_BASE}/submissions`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(submissionData)
+	});
+	return handleResponse(response);
+}
+
+export async function voteOnSubmission(submissionId, userId) {
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}/vote`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ userId })
+	});
+	return handleResponse(response);
+}
+
+export async function checkIfUserVoted(submissionId, userId) {
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}/check-vote`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ userId })
+	});
+	return handleResponse(response);
+}
+
+export async function addCommentToSubmission(submissionId, commentData) {
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}/comments`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(commentData)
+	});
+	return handleResponse(response);
+}
+
+export async function deleteSubmission(submissionId, userId) {
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}`, {
+		method: 'DELETE',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ userId })
+	});
+	return handleResponse(response);
+}
+
+// ==================== UPLOAD ====================
+
+export async function uploadImage(file) {
+	const formData = new FormData();
+	formData.append('image', file);
+	
+	const response = await fetch(`${API_BASE}/upload`, {
+		method: 'POST',
+		body: formData
+	});
+	return handleResponse(response);
+}
+
+// ==================== SEED ====================
+
+export async function seedDatabase() {
+	const response = await fetch(`${API_BASE}/seed`, {
+		method: 'POST'
+	});
+	return handleResponse(response);
+}
+
