@@ -31,43 +31,52 @@
 		imageUrl = url;
 	}
 	
-	async function handleSubmit() {
-		if (!$currentUser) {
-			alert('Bitte logge dich ein!');
-			return;
-		}
-		
-		if (!selectedCompetition || !title || !description || !imageUrl) {
-			alert('Bitte fülle alle Pflichtfelder aus und lade ein Bild hoch!');
-			return;
-		}
-		
-		isSubmitting = true;
-		
-		try {
-			const metadata = {
-				camera: camera || 'N/A',
-				lens: lens || 'N/A',
-				settings: settings || 'N/A'
-			};
-			
-			await createSubmission({
-				competitionId: selectedCompetition,
-				userId: $currentUser._id,
-				title,
-				description,
-				imageUrl,
-				metadata
-			});
-			
-			alert('✅ Submission erfolgreich eingereicht!');
-			goto(`/competitions/${selectedCompetition}`);
-		} catch (error) {
-			alert('Fehler: ' + error.message);
-		} finally {
-			isSubmitting = false;
-		}
+async function handleSubmit() {
+	if (!selectedCompetition || !uploadedImageUrl) {
+		alert('Bitte wähle einen Wettbewerb und lade ein Bild hoch');
+		return;
 	}
+	
+	if (!$currentUser) {
+		alert('Bitte logge dich ein!');
+		return;
+	}
+	
+	isSubmitting = true;
+	
+	try {
+		const submissionData = {
+			competitionId: selectedCompetition,
+			userId: $currentUser._id,
+			title: formData.title,
+			description: formData.description,
+			imageUrl: uploadedImageUrl,
+			metadata: {
+				camera: formData.camera,
+				lens: formData.lens,
+				settings: formData.settings
+			}
+		};
+		
+		await submitPhoto(submissionData);
+		alert('Submission erfolgreich eingereicht! 🎉');
+		
+		formData = {
+			title: '',
+			description: '',
+			camera: '',
+			lens: '',
+			settings: ''
+		};
+		selectedCompetition = '';
+		uploadedImageUrl = '';
+		window.location.href = '/competitions';
+	} catch (error) {
+		alert('Fehler beim Einreichen: ' + error.message);
+	} finally {
+		isSubmitting = false;
+	}
+}
 </script>
 
 <svelte:head>

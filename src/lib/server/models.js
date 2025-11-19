@@ -277,3 +277,70 @@ export async function hasUserVoted(submissionId, userId) {
 	
 	return submission.votedBy && submission.votedBy.includes(userId);
 }
+
+// User Profile Functions
+export async function getUserByUsername(username) {
+	const users = await getCollection('users');
+	const user = await users.findOne({ username });
+	
+	if (!user) {
+		throw new Error('User nicht gefunden');
+	}
+	
+	// Get user's submissions
+	const submissions = await getCollection('submissions');
+	const userSubmissions = await submissions
+		.find({ userId: user._id })
+		.sort({ createdAt: -1 })
+		.toArray();
+	
+	// Calculate stats
+	const totalVotes = userSubmissions.reduce((sum, sub) => sum + (sub.votes?.community || 0), 0);
+	const wins = 0; // TODO: Implement wins calculation based on competition winners
+	
+	return {
+		...user,
+		submissions: userSubmissions,
+		stats: {
+			submissions: userSubmissions.length,
+			wins: wins,
+			totalVotes: totalVotes
+		}
+	};
+}
+
+export async function updateUserProfile(userId, updates) {
+	const users = await getCollection('users');
+	
+	const allowedUpdates = {
+		name: updates.name,
+		bio: updates.bio,
+		location: updates.location,
+		website: updates.website,
+		avatar: updates.avatar
+	};
+	
+	// Remove undefined values
+	Object.keys(allowedUpdates).forEach(key => 
+		allowedUpdates[key] === undefined && delete allowedUpdates[key]
+	);
+	
+	const result = await users.updateOne(
+		{ _id: userId },
+		{ $set: allowedUpdates }
+	);
+	
+	if (result.matchedCount === 0) {
+		throw new Error('User nicht gefunden');
+	}
+	
+	return await users.findOne({ _id: userId });
+}
+
+export async function getUserSubmissions(userId) {
+	const submissions = await getCollection('submissions');
+	return await submissions
+		.find({ userId })
+		.sort({ createdAt: -1 })
+		.toArray();
+}

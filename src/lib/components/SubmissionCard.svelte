@@ -4,10 +4,16 @@
 	
 	export let submission;
 	export let showVoting = false;
-	export let onClick = () => {};
+	export let onClick = null;
+	
+	function handleClick() {
+		if (onClick) {
+			onClick();
+		}
+	}
 </script>
 
-<button class="submission-card" on:click={onClick}>
+<button class="submission-card" on:click={handleClick}>
 	<!-- Image -->
 	<div class="image-wrapper">
 		<img src={submission.imageUrl} alt={submission.title} />
@@ -48,12 +54,12 @@
 		<div class="stats">
 			<div class="stat-item">
 				<ThumbsUp size={16} />
-				<span class="stat-value">{submission.votes.community}</span>
+				<span class="stat-value">{submission.votes?.community || 0}</span>
 				<span class="stat-label">Votes</span>
 			</div>
 			<div class="stat-item">
 				<Star size={16} />
-				<span class="stat-value">{submission.votes.jury.toFixed(1)}</span>
+				<span class="stat-value">{submission.votes?.jury ? submission.votes.jury.toFixed(1) : '0.0'}</span>
 				<span class="stat-label">Jury</span>
 			</div>
 			<div class="stat-item">
@@ -75,6 +81,7 @@
 		border: 1px solid var(--color-border);
 		transition: all 0.3s ease;
 		cursor: pointer;
+		width: 100%;
 	}
 	
 	.submission-card:hover {
@@ -116,6 +123,11 @@
 		height: 36px;
 		border-radius: 50%;
 		object-fit: cover;
+	}
+	
+	.user-details {
+		display: flex;
+		flex-direction: column;
 	}
 	
 	.user-name {
@@ -163,6 +175,7 @@
 	
 	.camera-info :global(svg) {
 		color: var(--color-text-muted);
+		flex-shrink: 0;
 	}
 	
 	.stats {
@@ -180,6 +193,7 @@
 	
 	.stat-item :global(svg) {
 		color: var(--color-text-muted);
+		flex-shrink: 0;
 	}
 	
 	.stat-value {
@@ -191,5 +205,21 @@
 	.stat-label {
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
+	}
+	
+	/* Mobile Optimization */
+	@media (max-width: 640px) {
+		.card-content {
+			padding: var(--spacing-md);
+		}
+		
+		.stats {
+			flex-wrap: wrap;
+			gap: var(--spacing-md);
+		}
+		
+		.stat-item {
+			font-size: 0.8125rem;
+		}
 	}
 </style>
