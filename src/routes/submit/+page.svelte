@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { currentUser } from '$lib/stores/auth';
+	import { currentUser } from '$lib/stores/auth0';
 	import { getCompetitions, createSubmission } from '$lib/api.js';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	

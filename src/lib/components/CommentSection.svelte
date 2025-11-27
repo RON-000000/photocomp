@@ -1,6 +1,6 @@
 <script>
 	import { addCommentToSubmission } from '$lib/api.js';
-	import { currentUser } from '$lib/stores/auth';
+	import { currentUser } from '$lib/stores/auth0';
 	import { formatDate } from '$lib/data/mockData';
 	
 	export let submission;

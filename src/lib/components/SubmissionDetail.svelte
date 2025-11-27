@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
-	import { currentUser } from '$lib/stores/auth';
+	import { currentUser } from '$lib/stores/auth0';
 	import { voteOnSubmission, addCommentToSubmission, deleteSubmission, checkIfUserVoted } from '$lib/api.js';
 	import { formatDate } from '$lib/data/mockData';
 	import { 

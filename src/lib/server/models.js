@@ -37,11 +37,6 @@ export async function getUserById(userId) {
 	return await users.findOne({ _id: userId });
 }
 
-export async function getUserByUsername(username) {
-	const users = await getCollection('users');
-	return await users.findOne({ username });
-}
-
 export async function getAllUsers() {
 	const users = await getCollection('users');
 	return await users.find({}).toArray();

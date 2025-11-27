@@ -1,6 +1,6 @@
 <script>
 	import { voteOnSubmission } from '$lib/api.js';
-	import { currentUser } from '$lib/stores/auth';
+	import { currentUser } from '$lib/stores/auth0';
 	
 	export let submission;
 	

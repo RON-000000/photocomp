@@ -1,5 +1,5 @@
 <script>
-	import { currentUser, logout } from '$lib/stores/auth';
+	import { currentUser, login, logout, isAuthenticated } from '$lib/stores/auth0';
 	import { Camera, Menu, X, User, LogOut } from 'lucide-svelte';
 	
 	let mobileMenuOpen = false;
@@ -16,13 +16,15 @@
 		userMenuOpen = !userMenuOpen;
 	}
 	
+	function handleLogin() {
+		login();
+	}
+	
 	function handleLogout() {
 		logout();
 		userMenuOpen = false;
-		window.location.href = '/';
 	}
 	
-	// Close menus when clicking outside
 	function handleClickOutside(event) {
 		const target = event.target;
 		if (!target.closest('.user-menu-wrapper')) {
@@ -45,11 +47,13 @@
 				<a href="/">Home</a>
 				<a href="/competitions">Wettbewerbe</a>
 				<a href="/archive">Archiv</a>
-				<a href="/submit">Einreichen</a>
+				{#if $isAuthenticated}
+					<a href="/submit">Einreichen</a>
+				{/if}
 			</div>
 			
 			<div class="nav-actions">
-				{#if $currentUser}
+				{#if $isAuthenticated && $currentUser}
 					<div class="user-menu-wrapper">
 						<button class="user-menu-btn" on:click|stopPropagation={toggleUserMenu}>
 							<img src={$currentUser.avatar} alt={$currentUser.name} />
@@ -69,7 +73,9 @@
 						{/if}
 					</div>
 				{:else}
-					<a href="/login" class="btn btn-primary">Login</a>
+					<button class="btn btn-primary" on:click={handleLogin}>
+						Login
+					</button>
 				{/if}
 				
 				<button class="mobile-menu-btn" on:click={toggleMobileMenu}>
