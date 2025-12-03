@@ -209,34 +209,29 @@ export async function seedMockData() {
 		return { message: 'Database already seeded' };
 	}
 	
-	// Import mock data
-	const { mockUsers, mockCompetitions, mockSubmissions } = await import('$lib/data/mockData.js');
+	// Import seed data
+	const { seedUsers, seedCompetitions, seedSubmissions } = await import('$lib/data/seedData.js');
 	
 	// Insert users
 	const usersCollection = await getCollection('users');
-	await usersCollection.insertMany(mockUsers.map(user => ({
-		...user,
-		_id: user.id,
-		createdAt: new Date()
-	})));
+	await usersCollection.insertMany(seedUsers);
 	
 	// Insert competitions
 	const competitionsCollection = await getCollection('competitions');
-	await competitionsCollection.insertMany(mockCompetitions.map(comp => ({
-		...comp,
-		_id: comp.id,
-		createdAt: new Date()
-	})));
+	await competitionsCollection.insertMany(seedCompetitions);
 	
 	// Insert submissions
 	const submissionsCollection = await getCollection('submissions');
-	await submissionsCollection.insertMany(mockSubmissions.map(sub => ({
-		...sub,
-		_id: sub.id,
-		createdAt: new Date()
-	})));
+	await submissionsCollection.insertMany(seedSubmissions);
 	
-	return { message: 'Database seeded successfully' };
+	return { 
+		message: 'Database seeded successfully',
+		counts: {
+			users: seedUsers.length,
+			competitions: seedCompetitions.length,
+			submissions: seedSubmissions.length
+		}
+	};
 }
 
 export async function addVoteWithUser(submissionId, userId) {
@@ -338,4 +333,69 @@ export async function getUserSubmissions(userId) {
 		.find({ userId })
 		.sort({ createdAt: -1 })
 		.toArray();
+}
+
+// ==================== ADMIN & ROLES ====================
+
+export async function updateUserRole(userId, role) {
+	const users = await getCollection('users');
+	
+	if (!['user', 'admin', 'jury'].includes(role)) {
+		throw new Error('Ungültige Rolle');
+	}
+	
+	const result = await users.updateOne(
+		{ _id: userId },
+		{ $set: { role } }
+	);
+	
+	if (result.matchedCount === 0) {
+		throw new Error('User nicht gefunden');
+	}
+	
+	return await users.findOne({ _id: userId });
+}
+
+export async function getAllUsersWithRoles() {
+	const users = await getCollection('users');
+	return await users
+		.find({})
+		.project({ password: 0 })
+		.sort({ createdAt: -1 })
+		.toArray();
+}
+
+export async function getJuryMembers() {
+	const users = await getCollection('users');
+	return await users
+		.find({ role: 'jury' })
+		.project({ password: 0 })
+		.toArray();
+}
+
+export async function getAdminStats() {
+	const users = await getCollection('users');
+	const competitions = await getCollection('competitions');
+	const submissions = await getCollection('submissions');
+	
+	const totalUsers = await users.countDocuments();
+	const totalCompetitions = await competitions.countDocuments();
+	const totalSubmissions = await submissions.countDocuments();
+	const activeCompetitions = await competitions.countDocuments({ status: 'active' });
+	
+	// Get recent users
+	const recentUsers = await users
+		.find({})
+		.project({ password: 0 })
+		.sort({ createdAt: -1 })
+		.limit(5)
+		.toArray();
+	
+	return {
+		totalUsers,
+		totalCompetitions,
+		totalSubmissions,
+		activeCompetitions,
+		recentUsers
+	};
 }

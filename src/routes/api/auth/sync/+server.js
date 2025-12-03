@@ -31,6 +31,7 @@ export async function POST({ request }) {
 				bio: '',
 				location: 'Zürich, Schweiz',
 				website: '',
+				role: 'user', // Default role
 				stats: {
 					submissions: 0,
 					wins: 0,

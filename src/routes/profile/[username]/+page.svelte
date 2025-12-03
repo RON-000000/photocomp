@@ -1,9 +1,18 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { currentUser } from '$lib/stores/auth0';
 	import { getUserByUsername } from '$lib/api.js';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
-	import { Calendar, MapPin, Link as LinkIcon, Trophy, Image as ImageIcon } from 'lucide-svelte';
+	import { 
+		Calendar, 
+		MapPin, 
+		Link as LinkIcon, 
+		Trophy, 
+		Image as ImageIcon,
+		Edit
+	} from 'lucide-svelte';
 	
 	let user = null;
 	let loading = true;
@@ -55,37 +64,45 @@
 	</div>
 {:else if user}
 	<!-- Profile Hero -->
-	<section class="profile-hero">
-		<div class="container">
-			<div class="hero-content">
-				<img src={user.avatar} alt={user.name} class="profile-avatar" />
-				<h1>{user.name}</h1>
-				<p class="username">@{user.username}</p>
-				{#if user.bio}
-					<p class="bio">{user.bio}</p>
-				{/if}
-				
-				<div class="profile-meta">
-					{#if user.location}
-						<div class="meta-item">
-							<MapPin size={16} />
-							<span>{user.location}</span>
-						</div>
-					{/if}
-					{#if user.website}
-						<a href={user.website} target="_blank" rel="noopener" class="meta-item meta-link">
-							<LinkIcon size={16} />
-							<span>{user.website.replace(/^https?:\/\//, '')}</span>
-						</a>
-					{/if}
+<section class="profile-hero">
+	<div class="container">
+		<div class="hero-content">
+			<img src={user.avatar} alt={user.name} class="profile-avatar" />
+			<h1>{user.name}</h1>
+			<p class="username">@{user.username}</p>
+			{#if user.bio}
+				<p class="bio">{user.bio}</p>
+			{/if}
+			
+			<div class="profile-meta">
+				{#if user.location}
 					<div class="meta-item">
-						<Calendar size={16} />
-						<span>Mitglied seit {formatDate(user.createdAt)}</span>
+						<MapPin size={16} />
+						<span>{user.location}</span>
 					</div>
+				{/if}
+				{#if user.website}
+					<a href={user.website} target="_blank" rel="noopener" class="meta-item meta-link">
+						<LinkIcon size={16} />
+						<span>{user.website.replace(/^https?:\/\//, '')}</span>
+					</a>
+				{/if}
+				<div class="meta-item">
+					<Calendar size={16} />
+					<span>Mitglied seit {formatDate(user.createdAt)}</span>
 				</div>
 			</div>
+			
+			<!-- Edit Button - NEU -->
+			{#if $currentUser && $currentUser.username === user.username}
+				<button class="btn btn-primary edit-profile-btn" on:click={() => goto('/profile/edit')}>
+					<Edit size={18} />
+					Profil bearbeiten
+				</button>
+			{/if}
 		</div>
-	</section>
+	</div>
+</section>
 	
 	<!-- Stats Section -->
 	<section class="stats-section">
@@ -379,6 +396,10 @@
 		font-size: 1rem;
 		color: var(--color-text-secondary);
 		margin: 0;
+	}
+
+	.edit-profile-btn {
+		margin-top: var(--spacing-lg);
 	}
 	
 	/* Mobile Optimizations */

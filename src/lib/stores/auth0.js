@@ -118,26 +118,44 @@ export async function handleCallback() {
 
 // Sync User with Backend
 async function syncUserWithBackend(auth0User) {
+	console.log('🔍 Syncing user:', auth0User);
+	
 	try {
+		// Safe username generation
+		let username;
+		if (auth0User.nickname) {
+			username = auth0User.nickname;
+		} else if (auth0User.email) {
+			username = auth0User.email.split('@')[0];
+		} else if (auth0User.name) {
+			username = auth0User.name.toLowerCase().replace(/\s+/g, '');
+		} else {
+			username = 'user' + Date.now();
+		}
+		
 		const response = await fetch('/api/auth/sync', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				auth0Id: auth0User.sub,
-				email: auth0User.email,
-				name: auth0User.name,
-				avatar: auth0User.picture,
-				username: auth0User.nickname || auth0User.email.split('@')[0]
+				email: auth0User.email || `${auth0User.sub}@noemail.local`,
+				name: auth0User.name || 'PhotoZürich User',
+				avatar: auth0User.picture || 'https://i.pravatar.cc/150?u=' + auth0User.sub,
+				username: username
 			})
 		});
 		
+		console.log('📡 Sync response status:', response.status);
+		
 		if (response.ok) {
 			const user = await response.json();
+			console.log('✅ User synced:', user);
 			currentUser.set(user);
 		} else {
-			console.error('User sync failed');
+			const error = await response.text();
+			console.error('❌ Sync failed:', error);
 		}
 	} catch (error) {
-		console.error('User sync error:', error);
+		console.error('💥 User sync error:', error);
 	}
 }
