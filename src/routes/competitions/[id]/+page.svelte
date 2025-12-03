@@ -2,18 +2,21 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { getCompetitionById, getSubmissionsByCompetitionId } from '$lib/api.js';
+	import { getCompetitionById, getSubmissionsByCompetitionId, deleteCompetition } from '$lib/api.js';
 	import { formatDate } from '$lib/data/mockData';
+	import { currentUser } from '$lib/stores/auth0.js';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
 	import Leaderboard from '$lib/components/Leaderboard.svelte';
-	import { Calendar, Users, Image, Award, FileText, Scale, Upload } from 'lucide-svelte';
+	import { Calendar, Users, Image, Award, FileText, Scale, Upload, Edit3, Trash2 } from 'lucide-svelte';
 
 	let competition = null;
 	let submissions = [];
 	let loading = true;
 	let error = null;
+	let deleting = false;
 
 	$: competitionId = $page.params.id;
+	$: isAdmin = $currentUser && $currentUser.role === 'admin';
 
 	onMount(async () => {
 		await loadData();
@@ -37,7 +40,30 @@
 	function openSubmissionDetail(submission) {
 		goto(`/submissions/${submission._id}`);
 	}
-	
+
+	async function handleDeleteCompetition() {
+		if (!confirm('Möchtest du diese Competition wirklich löschen? Alle zugehörigen Submissions werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.')) {
+			return;
+		}
+
+		deleting = true;
+
+		try {
+			await deleteCompetition(competitionId);
+			alert('Competition erfolgreich gelöscht! 🗑️');
+			goto('/competitions');
+		} catch (err) {
+			console.error('Error deleting competition:', err);
+			alert('Fehler beim Löschen: ' + err.message);
+		} finally {
+			deleting = false;
+		}
+	}
+
+	function handleEditCompetition() {
+		goto(`/admin/competitions/${competitionId}/edit`);
+	}
+
 	// Berechne Status basierend auf Datum
 	function getStatus(comp) {
 		const now = new Date();
@@ -85,10 +111,23 @@
 				</div>
 				<h1>{competition.title}</h1>
 				<p class="hero-subtitle">{competition.description}</p>
+
+				{#if isAdmin}
+					<div class="admin-actions">
+						<button on:click={handleEditCompetition} class="admin-button edit-button">
+							<Edit3 size={18} />
+							<span>Bearbeiten</span>
+						</button>
+						<button on:click={handleDeleteCompetition} class="admin-button delete-button" disabled={deleting}>
+							<Trash2 size={18} />
+							<span>{deleting ? 'Löschen...' : 'Löschen'}</span>
+						</button>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</section>
-	
+
 	<div class="container">
 		<div class="content-wrapper">
 			<!-- Main Content -->
@@ -620,6 +659,78 @@
 		
 		.hero-content h1 {
 			font-size: 1.5rem;
+		}
+	}
+
+	.admin-actions {
+		display: flex;
+		gap: var(--spacing-sm);
+		margin-top: var(--spacing-lg);
+		padding-top: var(--spacing-lg);
+		border-top: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.admin-button {
+		all: unset;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		font-size: 0.875rem;
+		backdrop-filter: blur(8px);
+	}
+
+	.edit-button {
+		background: rgba(255, 255, 255, 0.95);
+		color: var(--color-primary);
+		border: 1px solid rgba(255, 255, 255, 0.95);
+	}
+
+	.edit-button:hover:not(:disabled) {
+		background: white;
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.admin-button.delete-button {
+		background: rgba(229, 62, 62, 0.95);
+		color: white;
+		border: 1px solid rgba(229, 62, 62, 0.95);
+	}
+
+	.admin-button.delete-button:hover:not(:disabled) {
+		background: rgba(197, 48, 48, 1);
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.admin-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	@media (max-width: 640px) {
+		.admin-actions {
+			flex-direction: column;
+			width: 100%;
+			gap: var(--spacing-xs);
+		}
+
+		.admin-button {
+			width: 100%;
+			justify-content: center;
+			padding: var(--spacing-sm) var(--spacing-md);
+			font-size: 0.8125rem;
+		}
+
+		.admin-button span {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 	}
 </style>

@@ -121,6 +121,21 @@ export async function incrementCompetitionStats(competitionId, field) {
 	);
 }
 
+export async function deleteCompetition(competitionId) {
+	const competitions = await getCollection('competitions');
+	const result = await competitions.deleteOne({ _id: competitionId });
+
+	if (result.deletedCount === 0) {
+		throw new Error('Competition nicht gefunden');
+	}
+
+	// Also delete all submissions for this competition
+	const submissions = await getCollection('submissions');
+	await submissions.deleteMany({ competitionId });
+
+	return result;
+}
+
 // ==================== SUBMISSIONS ====================
 
 export async function createSubmission(submissionData) {
@@ -233,7 +248,38 @@ export async function addComment(submissionId, commentData) {
 	return comment;
 }
 
+export async function deleteSubmission(submissionId, userId) {
+	const submissions = await getCollection('submissions');
 
+	// Get submission to check ownership
+	const submission = await submissions.findOne({ _id: submissionId });
+
+	if (!submission) {
+		throw new Error('Submission nicht gefunden');
+	}
+
+	// Check if user owns the submission
+	if (submission.userId !== userId) {
+		throw new Error('Keine Berechtigung zum Löschen dieser Submission');
+	}
+
+	// Delete the submission
+	const result = await submissions.deleteOne({ _id: submissionId });
+
+	// Update competition stats
+	if (submission.competitionId) {
+		const competitions = await getCollection('competitions');
+		await competitions.updateOne(
+			{ _id: submission.competitionId },
+			{ $inc: { submissionCount: -1 } }
+		);
+	}
+
+	// Update user stats
+	await updateUserStats(userId, { 'stats.submissions': -1 });
+
+	return result;
+}
 
 // ==================== HELPER FUNCTIONS ====================
 

@@ -79,6 +79,25 @@ export async function createCompetition(competitionData) {
 	return handleResponse(response);
 }
 
+export async function updateCompetition(competitionId, updates) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/competitions/${competitionId}`, {
+		method: 'PUT',
+		headers,
+		body: JSON.stringify(updates)
+	});
+	return handleResponse(response);
+}
+
+export async function deleteCompetition(competitionId) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/competitions/${competitionId}`, {
+		method: 'DELETE',
+		headers
+	});
+	return handleResponse(response);
+}
+
 // ==================== SUBMISSIONS ====================
 
 export async function getSubmissionById(submissionId) {

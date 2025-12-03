@@ -2,20 +2,23 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { getSubmissionById, voteOnSubmission, addCommentToSubmission, checkIfUserVoted } from '$lib/api.js';
+	import { getSubmissionById, voteOnSubmission, addCommentToSubmission, checkIfUserVoted, deleteSubmission, getCompetitionById } from '$lib/api.js';
 	import { formatDate } from '$lib/data/mockData';
 	import { currentUser } from '$lib/stores/auth0.js';
-	import { ThumbsUp, Star, MessageCircle, Camera, Aperture, Calendar, User, Send, ArrowLeft } from 'lucide-svelte';
+	import { ThumbsUp, Star, MessageCircle, Camera, Aperture, Calendar, User, Send, ArrowLeft, Trash2 } from 'lucide-svelte';
 
 	let submission = null;
+	let competition = null;
 	let loading = true;
 	let error = null;
 	let hasVoted = false;
 	let voting = false;
 	let commentText = '';
 	let submittingComment = false;
+	let deleting = false;
 
 	$: submissionId = $page.params.submission;
+	$: canDelete = submission && $currentUser && (submission.userId === $currentUser._id) && competition && new Date(competition.deadline) > new Date();
 
 	onMount(async () => {
 		await loadData();
@@ -27,7 +30,16 @@
 
 		try {
 			submission = await getSubmissionById(submissionId);
-			
+
+			// Load competition to check deadline
+			if (submission && submission.competitionId) {
+				try {
+					competition = await getCompetitionById(submission.competitionId);
+				} catch (err) {
+					console.error('Error loading competition:', err);
+				}
+			}
+
 			// Check if current user has voted
 			if ($currentUser && submission) {
 				try {
@@ -109,6 +121,30 @@
 		}
 	}
 
+	async function handleDelete() {
+		if (!$currentUser) {
+			alert('Bitte logge dich ein!');
+			return;
+		}
+
+		if (!confirm('Möchtest du diese Submission wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+			return;
+		}
+
+		deleting = true;
+
+		try {
+			await deleteSubmission(submissionId, $currentUser._id);
+			alert('Submission erfolgreich gelöscht! 🗑️');
+			goto(`/competitions/${submission.competitionId}`);
+		} catch (err) {
+			console.error('Error deleting submission:', err);
+			alert('Fehler beim Löschen: ' + err.message);
+		} finally {
+			deleting = false;
+		}
+	}
+
 	function goBack() {
 		if (window.history.length > 1) {
 			history.back();
@@ -137,11 +173,20 @@
 	</div>
 {:else if submission}
 	<div class="container">
-		<!-- Back Button -->
-		<button on:click={goBack} class="back-button">
-			<ArrowLeft size={20} />
-			<span>Zurück</span>
-		</button>
+		<!-- Header with Back and Delete buttons -->
+		<div class="header-actions">
+			<button on:click={goBack} class="back-button">
+				<ArrowLeft size={20} />
+				<span>Zurück</span>
+			</button>
+
+			{#if canDelete}
+				<button on:click={handleDelete} class="delete-button" disabled={deleting}>
+					<Trash2 size={20} />
+					<span>{deleting ? 'Löschen...' : 'Submission löschen'}</span>
+				</button>
+			{/if}
+		</div>
 
 		<div class="submission-detail">
 			<!-- Image Section -->
@@ -323,13 +368,20 @@
 		margin-bottom: var(--spacing-md);
 	}
 
+	.header-actions {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-lg);
+		gap: var(--spacing-md);
+	}
+
 	.back-button {
 		all: unset;
 		display: inline-flex;
 		align-items: center;
 		gap: var(--spacing-xs);
 		padding: var(--spacing-sm) var(--spacing-md);
-		margin-bottom: var(--spacing-lg);
 		color: var(--color-text-secondary);
 		background: white;
 		border: 1px solid var(--color-border);
@@ -342,6 +394,33 @@
 		color: var(--color-primary);
 		border-color: var(--color-primary);
 		background: var(--color-surface);
+	}
+
+	.delete-button {
+		all: unset;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-sm) var(--spacing-md);
+		color: white;
+		background: var(--color-error);
+		border: 1px solid var(--color-error);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+	}
+
+	.delete-button:hover:not(:disabled) {
+		background: #c53030;
+		border-color: #c53030;
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
+	}
+
+	.delete-button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.submission-detail {

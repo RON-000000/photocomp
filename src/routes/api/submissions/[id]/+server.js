@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getSubmissionById } from '$lib/server/models.js';
+import { getSubmissionById, deleteSubmission } from '$lib/server/models.js';
 
 export async function GET({ params }) {
 	try {
@@ -13,5 +13,22 @@ export async function GET({ params }) {
 	} catch (error) {
 		console.error('Get submission error:', error);
 		return json({ error: error.message }, { status: 500 });
+	}
+}
+
+export async function DELETE({ params, request }) {
+	try {
+		const { userId } = await request.json();
+
+		if (!userId) {
+			return json({ error: 'User ID erforderlich' }, { status: 400 });
+		}
+
+		await deleteSubmission(params.id, userId);
+
+		return json({ success: true, message: 'Submission erfolgreich gelöscht' });
+	} catch (error) {
+		console.error('Delete submission error:', error);
+		return json({ error: error.message }, { status: 400 });
 	}
 }
