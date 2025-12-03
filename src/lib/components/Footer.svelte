@@ -18,7 +18,7 @@
 					<a href="https://twitter.com" target="_blank" rel="noopener" class="social-link">
 						<Twitter size={20} />
 					</a>
-					<a href="mailto:info@photozurich.ch" class="social-link">
+					<a href="mailto:schwaro4@students.zhaw.ch" class="social-link">
 						<Mail size={20} />
 					</a>
 				</div>
