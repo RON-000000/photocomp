@@ -6,19 +6,21 @@ export async function POST({ request }) {
 	try {
 		const formData = await request.formData();
 		const file = formData.get('image');
-		
+		const folder = formData.get('folder') || 'submissions';
+
 		if (!file) {
 			return json({ error: 'No image provided' }, { status: 400 });
 		}
-		
+
 		// Validate and compress image
 		const compressedBuffer = await validateAndProcessImage(file);
-		
-		// Upload to Cloudinary
-		const imageUrl = await uploadImage(compressedBuffer, 'submissions');
-		
-		return json({ 
-			success: true, 
+
+		// Upload to Cloudinary with specified folder
+		const imageUrl = await uploadImage(compressedBuffer, folder);
+
+		return json({
+			success: true,
+			url: imageUrl,
 			imageUrl,
 			message: 'Image uploaded successfully'
 		});

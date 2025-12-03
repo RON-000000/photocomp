@@ -1,11 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
 	import { currentUser } from '$lib/stores/auth0';
-	import { Users, Trophy, Image, Activity } from 'lucide-svelte';
-	
+	import { Users, Trophy, Image, Activity, Search } from 'lucide-svelte';
+
 	let stats = null;
 	let users = [];
 	let loading = true;
+	let searchQuery = '';
 	
 	onMount(async () => {
 		await loadData();
@@ -33,14 +34,14 @@
 	
 	async function updateRole(userId, newRole) {
 		if (!confirm(`Rolle zu "${newRole}" ändern?`)) return;
-		
+
 		try {
 			const response = await fetch(`/api/admin/users/${userId}/role`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ role: newRole })
 			});
-			
+
 			if (response.ok) {
 				alert('Rolle erfolgreich aktualisiert!');
 				await loadData();
@@ -52,6 +53,18 @@
 			alert('Fehler beim Aktualisieren der Rolle');
 		}
 	}
+
+	// Filter users based on search query
+	$: filteredUsers = users.filter(user => {
+		if (!searchQuery) return true;
+		const query = searchQuery.toLowerCase();
+		return (
+			user.name?.toLowerCase().includes(query) ||
+			user.username?.toLowerCase().includes(query) ||
+			user.email?.toLowerCase().includes(query) ||
+			user.role?.toLowerCase().includes(query)
+		);
+	});
 </script>
 
 <div class="admin-page">
@@ -122,20 +135,46 @@
 			
 			<!-- User Management -->
 			<div class="users-section">
-				<h2>Benutzer-Verwaltung</h2>
-				<div class="users-table-wrapper">
-					<table class="users-table">
-						<thead>
-							<tr>
-								<th>Benutzer</th>
-								<th>Email</th>
-								<th>Rolle</th>
-								<th>Mitglied seit</th>
-								<th>Aktionen</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each users as user}
+				<div class="users-header">
+					<h2>Benutzer-Verwaltung</h2>
+					<div class="search-box">
+						<Search size={20} />
+						<input
+							type="text"
+							placeholder="Nach Name, Username, Email oder Rolle suchen..."
+							bind:value={searchQuery}
+							class="search-input"
+						/>
+						{#if searchQuery}
+							<button
+								class="clear-search"
+								on:click={() => searchQuery = ''}
+								aria-label="Suche löschen"
+							>
+								×
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				{#if filteredUsers.length === 0}
+					<div class="no-results">
+						<p>Keine Benutzer gefunden für "{searchQuery}"</p>
+					</div>
+				{:else}
+					<div class="users-table-wrapper">
+						<table class="users-table">
+							<thead>
+								<tr>
+									<th>Benutzer</th>
+									<th>Email</th>
+									<th>Rolle</th>
+									<th>Mitglied seit</th>
+									<th>Aktionen</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each filteredUsers as user}
 								<tr>
 									<td>
 										<div class="user-cell">
@@ -165,10 +204,11 @@
 										</select>
 									</td>
 								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -257,11 +297,87 @@
 		gap: var(--spacing-md);
 	}
 	
-	/* Users Table */
-	.users-section h2 {
+	/* Users Section */
+	.users-section {
+		margin-bottom: var(--spacing-2xl);
+	}
+
+	.users-header {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.users-header h2 {
 		font-size: 1.5rem;
 		font-weight: 600;
-		margin: 0 0 var(--spacing-lg) 0;
+		margin: 0;
+	}
+
+	/* Search Box */
+	.search-box {
+		position: relative;
+		display: flex;
+		align-items: center;
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm) var(--spacing-md);
+		gap: var(--spacing-sm);
+		max-width: 500px;
+	}
+
+	.search-box :global(svg) {
+		color: var(--color-text-secondary);
+		flex-shrink: 0;
+	}
+
+	.search-input {
+		flex: 1;
+		border: none;
+		outline: none;
+		font-size: 0.875rem;
+		background: transparent;
+	}
+
+	.search-input::placeholder {
+		color: var(--color-text-secondary);
+	}
+
+	.clear-search {
+		background: none;
+		border: none;
+		color: var(--color-text-secondary);
+		font-size: 1.5rem;
+		cursor: pointer;
+		padding: 0;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		transition: all 0.2s;
+	}
+
+	.clear-search:hover {
+		background: var(--color-surface);
+		color: var(--color-text-primary);
+	}
+
+	/* No Results */
+	.no-results {
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-2xl);
+		text-align: center;
+	}
+
+	.no-results p {
+		color: var(--color-text-secondary);
+		margin: 0;
 	}
 	
 	.users-table-wrapper {
@@ -365,11 +481,19 @@
 		.stats-grid {
 			grid-template-columns: 1fr;
 		}
-		
+
+		.users-header {
+			gap: var(--spacing-md);
+		}
+
+		.search-box {
+			max-width: 100%;
+		}
+
 		.users-table-wrapper {
 			overflow-x: auto;
 		}
-		
+
 		.users-table {
 			min-width: 600px;
 		}

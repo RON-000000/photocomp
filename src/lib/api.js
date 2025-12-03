@@ -1,5 +1,27 @@
 const API_BASE = '/api';
 
+// Get auth token from Auth0 client in store
+let auth0ClientInstance = null;
+
+export function setAuth0Client(client) {
+	auth0ClientInstance = client;
+}
+
+async function getAuthHeaders() {
+	const headers = { 'Content-Type': 'application/json' };
+
+	if (auth0ClientInstance) {
+		try {
+			const token = await auth0ClientInstance.getTokenSilently();
+			headers['Authorization'] = `Bearer ${token}`;
+		} catch (error) {
+			console.error('Error getting auth token:', error);
+		}
+	}
+
+	return headers;
+}
+
 async function handleResponse(response) {
 	if (!response.ok) {
 		const error = await response.json();
@@ -47,7 +69,22 @@ export async function getSubmissionsByCompetitionId(competitionId) {
 	return handleResponse(response);
 }
 
+export async function createCompetition(competitionData) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/competitions`, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify(competitionData)
+	});
+	return handleResponse(response);
+}
+
 // ==================== SUBMISSIONS ====================
+
+export async function getSubmissionById(submissionId) {
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}`);
+	return handleResponse(response);
+}
 
 export async function createSubmission(submissionData) {
 	const response = await fetch(`${API_BASE}/submissions`, {
@@ -96,10 +133,11 @@ export async function deleteSubmission(submissionId, userId) {
 
 // ==================== UPLOAD ====================
 
-export async function uploadImage(file) {
+export async function uploadImage(file, folder = 'submissions') {
 	const formData = new FormData();
 	formData.append('image', file);
-	
+	formData.append('folder', folder);
+
 	const response = await fetch(`${API_BASE}/upload`, {
 		method: 'POST',
 		body: formData

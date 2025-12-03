@@ -156,12 +156,49 @@ export async function createSubmission(submissionData) {
 
 export async function getSubmissionById(submissionId) {
 	const submissions = await getCollection('submissions');
-	return await submissions.findOne({ _id: submissionId });
+	const submission = await submissions.findOne({ _id: submissionId });
+
+	if (!submission) {
+		return null;
+	}
+
+	// Populate user data
+	const users = await getCollection('users');
+	const user = await users.findOne({ _id: submission.userId });
+
+	return {
+		...submission,
+		user: user ? {
+			_id: user._id,
+			username: user.username,
+			name: user.name,
+			avatar: user.avatar
+		} : null
+	};
 }
 
 export async function getSubmissionsByCompetitionId(competitionId) {
 	const submissions = await getCollection('submissions');
-	return await submissions.find({ competitionId }).toArray();
+	const submissionsArray = await submissions.find({ competitionId }).toArray();
+
+	// Populate user data for each submission
+	const users = await getCollection('users');
+	const populatedSubmissions = await Promise.all(
+		submissionsArray.map(async (submission) => {
+			const user = await users.findOne({ _id: submission.userId });
+			return {
+				...submission,
+				user: user ? {
+					_id: user._id,
+					username: user.username,
+					name: user.name,
+					avatar: user.avatar
+				} : null
+			};
+		})
+	);
+
+	return populatedSubmissions;
 }
 
 export async function getSubmissionsByUserId(userId) {

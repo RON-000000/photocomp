@@ -1,30 +1,28 @@
 <script>
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { getCompetitionById, getSubmissionsByCompetitionId } from '$lib/api.js';
 	import { formatDate } from '$lib/data/mockData';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
 	import Leaderboard from '$lib/components/Leaderboard.svelte';
-	import CommentSection from '$lib/components/CommentSection.svelte';
-	import VotingPanel from '$lib/components/VotingPanel.svelte';
-	import { Calendar, Users, Image, Award, FileText, Scale, Upload, X } from 'lucide-svelte';
-	
+	import { Calendar, Users, Image, Award, FileText, Scale, Upload } from 'lucide-svelte';
+
 	let competition = null;
 	let submissions = [];
 	let loading = true;
 	let error = null;
-	let selectedSubmission = null;
-	
+
 	$: competitionId = $page.params.id;
-	
+
 	onMount(async () => {
 		await loadData();
 	});
-	
+
 	async function loadData() {
 		loading = true;
 		error = null;
-		
+
 		try {
 			competition = await getCompetitionById(competitionId);
 			submissions = await getSubmissionsByCompetitionId(competitionId);
@@ -35,15 +33,9 @@
 			loading = false;
 		}
 	}
-	
+
 	function openSubmissionDetail(submission) {
-		selectedSubmission = submission;
-		document.body.style.overflow = 'hidden';
-	}
-	
-	function closeSubmissionDetail() {
-		selectedSubmission = null;
-		document.body.style.overflow = 'auto';
+		goto(`/submissions/${submission._id}`);
 	}
 	
 	// Berechne Status basierend auf Datum
@@ -241,28 +233,6 @@
 			</aside>
 		</div>
 	</div>
-	
-	<!-- Submission Detail Modal -->
-	{#if selectedSubmission}
-		<div class="modal-overlay" on:click={closeSubmissionDetail} on:keydown={(e) => e.key === 'Escape' && closeSubmissionDetail()} role="button" tabindex="0">
-			<button class="close-btn" on:click={closeSubmissionDetail}>
-				<X size={24} />
-			</button>
-			
-			<div class="modal-content" on:click|stopPropagation on:keydown|stopPropagation role="dialog" tabindex="-1">
-				<div class="modal-grid">
-					<div class="modal-image">
-						<img src={selectedSubmission.imageUrl} alt={selectedSubmission.title} />
-					</div>
-					
-					<div class="modal-sidebar">
-						<VotingPanel submission={selectedSubmission} />
-						<CommentSection submission={selectedSubmission} />
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
 {:else}
 	<div class="container">
 		<div class="error-state">
@@ -591,102 +561,15 @@
 		margin-bottom: var(--spacing-xs);
 		font-weight: 500;
 	}
-	
-	/* Modal */
-	.modal-overlay {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.9);
-		z-index: 1000;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--spacing-lg);
-		backdrop-filter: blur(4px);
-	}
-	
-	.close-btn {
-		position: fixed;
-		top: var(--spacing-lg);
-		right: var(--spacing-lg);
-		background: rgba(255, 255, 255, 0.1);
-		color: white;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-		width: 48px;
-		height: 48px;
-		border-radius: 50%;
-		cursor: pointer;
-		z-index: 1001;
-		transition: all 0.2s;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		backdrop-filter: blur(10px);
-	}
-	
-	.close-btn:hover {
-		background: rgba(255, 255, 255, 0.2);
-		transform: scale(1.1);
-	}
-	
-	.modal-content {
-		background: white;
-		border-radius: var(--radius-xl);
-		max-width: 1400px;
-		width: 100%;
-		max-height: 90vh;
-		overflow: hidden;
-		position: relative;
-	}
-	
-	.modal-grid {
-		display: grid;
-		grid-template-columns: 1fr 400px;
-		max-height: 90vh;
-	}
-	
-	.modal-image {
-		background: var(--color-surface);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow: hidden;
-	}
-	
-	.modal-image img {
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-	}
-	
-	.modal-sidebar {
-		overflow-y: auto;
-		padding: var(--spacing-xl);
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xl);
-	}
-	
+
 	/* Mobile Optimizations */
 	@media (max-width: 1024px) {
 		.content-wrapper {
 			grid-template-columns: 1fr;
 		}
-		
+
 		.sidebar {
 			position: static;
-		}
-		
-		.modal-grid {
-			grid-template-columns: 1fr;
-			max-height: none;
-		}
-		
-		.modal-image {
-			max-height: 50vh;
 		}
 	}
 	

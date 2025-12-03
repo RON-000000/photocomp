@@ -32,46 +32,47 @@
 	}
 	
 async function handleSubmit() {
-	if (!selectedCompetition || !uploadedImageUrl) {
+	if (!selectedCompetition || !imageUrl) {
 		alert('Bitte wähle einen Wettbewerb und lade ein Bild hoch');
 		return;
 	}
-	
+
 	if (!$currentUser) {
 		alert('Bitte logge dich ein!');
 		return;
 	}
-	
+
 	isSubmitting = true;
-	
+
 	try {
 		const submissionData = {
 			competitionId: selectedCompetition,
 			userId: $currentUser._id,
-			title: formData.title,
-			description: formData.description,
-			imageUrl: uploadedImageUrl,
+			title: title,
+			description: description,
+			imageUrl: imageUrl,
 			metadata: {
-				camera: formData.camera,
-				lens: formData.lens,
-				settings: formData.settings
+				camera: camera,
+				lens: lens,
+				settings: settings
 			}
 		};
-		
-		await submitPhoto(submissionData);
+
+		await createSubmission(submissionData);
 		alert('Submission erfolgreich eingereicht! 🎉');
-		
-		formData = {
-			title: '',
-			description: '',
-			camera: '',
-			lens: '',
-			settings: ''
-		};
+
+		// Reset form
+		title = '';
+		description = '';
+		camera = '';
+		lens = '';
+		settings = '';
 		selectedCompetition = '';
-		uploadedImageUrl = '';
-		window.location.href = '/competitions';
+		imageUrl = '';
+
+		goto('/competitions');
 	} catch (error) {
+		console.error('Submission error:', error);
 		alert('Fehler beim Einreichen: ' + error.message);
 	} finally {
 		isSubmitting = false;

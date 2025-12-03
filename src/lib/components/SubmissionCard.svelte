@@ -23,13 +23,13 @@
 	<div class="card-content">
 		<!-- User Info -->
 		<div class="user-info">
-			<img 
-				src="https://i.pravatar.cc/150?u={submission.userId}" 
-				alt="User" 
-				class="user-avatar" 
+			<img
+				src={submission.user?.avatar || `https://i.pravatar.cc/150?u=${submission.userId}`}
+				alt={submission.user?.username || 'User'}
+				class="user-avatar"
 			/>
 			<div class="user-details">
-				<div class="user-name">{submission.userId}</div>
+				<div class="user-name">{submission.user?.username || submission.userId}</div>
 				<div class="submission-date">{formatDate(submission.createdAt)}</div>
 			</div>
 		</div>

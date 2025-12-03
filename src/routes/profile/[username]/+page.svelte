@@ -140,9 +140,9 @@
 				
 				<div class="submissions-grid">
 					{#each user.submissions as submission}
-						<SubmissionCard 
-							{submission} 
-							onClick={() => window.location.href = `/competitions/${submission.competitionId}`}
+						<SubmissionCard
+							{submission}
+							onClick={() => goto(`/submissions/${submission._id}`)}
 						/>
 					{/each}
 				</div>

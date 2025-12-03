@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 import { createAuth0Client } from '@auth0/auth0-spa-js';
+import { setAuth0Client } from '$lib/api.js';
 
 // Stores
 export const isAuthenticated = writable(false);
@@ -30,7 +31,10 @@ export async function initAuth0() {
 		
 		clientInstance = client;
 		auth0Client.set(client);
-		
+
+		// Set auth client for API calls
+		setAuth0Client(client);
+
 		// Check if logged in
 		const authenticated = await client.isAuthenticated();
 		isAuthenticated.set(authenticated);
