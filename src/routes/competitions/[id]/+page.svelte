@@ -7,16 +7,21 @@
 	import { currentUser } from '$lib/stores/auth0.js';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
 	import Leaderboard from '$lib/components/Leaderboard.svelte';
-	import { Calendar, Users, Image, Award, FileText, Scale, Upload, Edit3, Trash2 } from 'lucide-svelte';
+	import { Calendar, Users, Image, Award, FileText, Scale, Upload, Edit3, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-svelte';
 
 	let competition = null;
 	let submissions = [];
 	let loading = true;
 	let error = null;
 	let deleting = false;
+	let sortBy = 'date'; // date, votes, jury, comments
+	let sortOrder = 'desc'; // desc or asc
+	let searchQuery = '';
 
 	$: competitionId = $page.params.id;
 	$: isAdmin = $currentUser && $currentUser.role === 'admin';
+	$: filteredSubmissions = filterSubmissions(submissions, searchQuery);
+	$: sortedSubmissions = sortSubmissions(filteredSubmissions, sortBy, sortOrder);
 
 	onMount(async () => {
 		await loadData();
@@ -74,10 +79,42 @@
 	}
 	
 	$: currentStatus = competition ? getStatus(competition) : null;
-	$: statusBadge = currentStatus === 'active' ? 'success' : 
+	$: statusBadge = currentStatus === 'active' ? 'success' :
 	                 currentStatus === 'voting' ? 'warning' : 'primary';
-	$: statusText = currentStatus === 'active' ? 'AKTIV' : 
+	$: statusText = currentStatus === 'active' ? 'AKTIV' :
 	                currentStatus === 'voting' ? 'VOTING' : 'BEENDET';
+
+	function filterSubmissions(subs, query) {
+		if (!query.trim()) return subs;
+
+		const lowerQuery = query.toLowerCase();
+		return subs.filter(sub =>
+			(sub.user?.username || '').toLowerCase().includes(lowerQuery) ||
+			(sub.title || '').toLowerCase().includes(lowerQuery)
+		);
+	}
+
+	function sortSubmissions(subs, sortType, order) {
+		const sorted = [...subs];
+		const multiplier = order === 'desc' ? -1 : 1;
+
+		switch(sortType) {
+			case 'date':
+				return sorted.sort((a, b) => multiplier * (new Date(b.createdAt) - new Date(a.createdAt)));
+			case 'votes':
+				return sorted.sort((a, b) => multiplier * ((b.votes?.community || 0) - (a.votes?.community || 0)));
+			case 'jury':
+				return sorted.sort((a, b) => multiplier * ((b.votes?.jury || 0) - (a.votes?.jury || 0)));
+			case 'comments':
+				return sorted.sort((a, b) => multiplier * ((b.comments?.length || 0) - (a.comments?.length || 0)));
+			default:
+				return sorted;
+		}
+	}
+
+	function toggleSortOrder() {
+		sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+	}
 </script>
 
 <svelte:head>
@@ -165,7 +202,76 @@
 						</a>
 					</div>
 				{/if}
-				
+
+				<!-- Mobile Sidebar (only visible on mobile) -->
+				<aside class="sidebar-mobile">
+					<div class="info-card">
+						<h3>
+							<FileText size={20} />
+							<span>Details</span>
+						</h3>
+
+						<div class="info-section">
+							<div class="info-label">Thema</div>
+							<div class="info-value">{competition.theme}</div>
+						</div>
+
+						<div class="info-section">
+							<div class="info-label">Start</div>
+							<div class="info-value">{formatDate(competition.startDate)}</div>
+						</div>
+
+						<div class="info-section">
+							<div class="info-label">Deadline</div>
+							<div class="info-value">{formatDate(competition.deadline)}</div>
+						</div>
+					</div>
+
+					<div class="info-card">
+						<h3>
+							<Award size={20} />
+							<span>Preise</span>
+						</h3>
+
+						<ul class="prizes-list">
+							{#each competition.prizes as prize, index}
+								<li>
+									<span class="prize-position">{index + 1}.</span>
+									<span>{prize}</span>
+								</li>
+							{/each}
+						</ul>
+					</div>
+
+					<div class="info-card">
+						<h3>
+							<Scale size={20} />
+							<span>Regeln</span>
+						</h3>
+
+						<ul class="rules-list">
+							{#each competition.rules as rule}
+								<li>{rule}</li>
+							{/each}
+						</ul>
+					</div>
+
+					{#if competition.juryMembers && competition.juryMembers.length > 0}
+						<div class="info-card">
+							<h3>
+								<Users size={20} />
+								<span>Jury</span>
+							</h3>
+
+							<ul class="jury-list">
+								{#each competition.juryMembers as juryMember}
+									<li>@{juryMember}</li>
+								{/each}
+							</ul>
+						</div>
+					{/if}
+				</aside>
+
 				<!-- Leaderboard -->
 				<section class="section">
 					<Leaderboard competitionId={competition._id} {submissions} {competition} />
@@ -177,10 +283,81 @@
 						<h2>Alle Submissions</h2>
 						<span class="count">{submissions.length}</span>
 					</div>
-					
+
 					{#if submissions.length > 0}
+						<!-- Search and Sort Section -->
+						<div class="filter-sort-section">
+							<!-- Search Bar -->
+							<div class="search-section">
+								<div class="search-input-wrapper">
+									<Search size={18} />
+									<input
+										type="text"
+										bind:value={searchQuery}
+										placeholder="Nach Username oder Titel suchen..."
+										class="search-input"
+									/>
+									{#if searchQuery}
+										<button class="clear-search" on:click={() => searchQuery = ''}>
+											×
+										</button>
+									{/if}
+								</div>
+								{#if searchQuery && filteredSubmissions.length !== submissions.length}
+									<span class="search-results">{filteredSubmissions.length} von {submissions.length} Ergebnissen</span>
+								{/if}
+							</div>
+
+							<!-- Sort Options -->
+							<div class="sort-section">
+								<div class="sort-header">
+									<ArrowUpDown size={16} />
+									<span>Sortieren nach</span>
+								</div>
+								<div class="sort-controls">
+									<div class="sort-buttons">
+										<button
+											class="sort-btn"
+											class:active={sortBy === 'date'}
+											on:click={() => sortBy = 'date'}
+										>
+											Datum
+										</button>
+										<button
+											class="sort-btn"
+											class:active={sortBy === 'votes'}
+											on:click={() => sortBy = 'votes'}
+										>
+											Votes
+										</button>
+										<button
+											class="sort-btn"
+											class:active={sortBy === 'jury'}
+											on:click={() => sortBy = 'jury'}
+										>
+											Jury Bewertung
+										</button>
+										<button
+											class="sort-btn"
+											class:active={sortBy === 'comments'}
+											on:click={() => sortBy = 'comments'}
+										>
+											Kommentare
+										</button>
+									</div>
+									<button class="sort-order-btn" on:click={toggleSortOrder} title={sortOrder === 'desc' ? 'Absteigend' : 'Aufsteigend'}>
+										{#if sortOrder === 'desc'}
+											<ArrowDown size={18} />
+										{:else}
+											<ArrowUp size={18} />
+										{/if}
+									</button>
+								</div>
+							</div>
+						</div>
+
 						<div class="submissions-grid">
-							{#each submissions as submission}
+							{#each sortedSubmissions as submission}
 								<button 
 									class="submission-wrapper"
 									on:click={() => openSubmissionDetail(submission)}
@@ -477,13 +654,167 @@
 		color: var(--color-text-secondary);
 	}
 	
+	/* Filter and Sort Section */
+	.filter-sort-section {
+		margin-bottom: var(--spacing-xl);
+		padding: var(--spacing-lg);
+		background: white;
+		border-radius: var(--radius-lg);
+		border: 1px solid var(--color-border);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+	}
+
+	/* Search Section */
+	.search-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.search-input-wrapper {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.search-input-wrapper :global(svg) {
+		position: absolute;
+		left: var(--spacing-md);
+		color: var(--color-text-muted);
+		pointer-events: none;
+	}
+
+	.search-input {
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 3rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		font-size: 0.9375rem;
+		font-family: var(--font-sans);
+		transition: border-color 0.2s;
+	}
+
+	.search-input:focus {
+		outline: none;
+		border-color: var(--color-primary);
+	}
+
+	.clear-search {
+		position: absolute;
+		right: var(--spacing-md);
+		background: none;
+		border: none;
+		font-size: 1.5rem;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		transition: all 0.2s;
+	}
+
+	.clear-search:hover {
+		background: var(--color-surface);
+		color: var(--color-text-primary);
+	}
+
+	.search-results {
+		font-size: 0.875rem;
+		color: var(--color-text-muted);
+		padding-left: var(--spacing-sm);
+	}
+
+	/* Sort Section */
+	.sort-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+
+	.sort-header {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--color-text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.sort-controls {
+		display: flex;
+		gap: var(--spacing-md);
+		align-items: center;
+	}
+
+	.sort-buttons {
+		display: flex;
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
+		flex: 1;
+	}
+
+	.sort-btn {
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border: 1px solid var(--color-border);
+		background: white;
+		border-radius: var(--radius-md);
+		font-weight: 500;
+		font-size: 0.9375rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		color: var(--color-text-secondary);
+		font-family: var(--font-sans);
+	}
+
+	.sort-btn:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+		background: var(--color-surface);
+	}
+
+	.sort-btn.active {
+		background: var(--color-primary);
+		color: white;
+		border-color: var(--color-primary);
+	}
+
+	.sort-order-btn {
+		padding: var(--spacing-sm);
+		border: 1px solid var(--color-border);
+		background: white;
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all 0.2s;
+		color: var(--color-text-secondary);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		flex-shrink: 0;
+	}
+
+	.sort-order-btn:hover {
+		border-color: var(--color-primary);
+		color: var(--color-primary);
+		background: var(--color-surface);
+	}
+
 	/* Submissions Grid */
 	.submissions-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: var(--spacing-2xl);
 	}
-	
+
 	.submission-wrapper {
 		all: unset;
 		cursor: pointer;
@@ -509,6 +840,11 @@
 		position: sticky;
 		top: 100px;
 		align-self: start;
+	}
+
+	/* Mobile Sidebar - hidden on desktop, shown on mobile */
+	.sidebar-mobile {
+		display: none;
 	}
 	
 	.info-card {
@@ -607,8 +943,15 @@
 			grid-template-columns: 1fr;
 		}
 
+		/* Hide desktop sidebar on mobile */
 		.sidebar {
-			position: static;
+			display: none;
+		}
+
+		/* Show mobile sidebar on mobile */
+		.sidebar-mobile {
+			display: block;
+			margin-bottom: var(--spacing-2xl);
 		}
 	}
 	

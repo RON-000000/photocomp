@@ -5,7 +5,7 @@
 	import { Trophy, Filter } from 'lucide-svelte';
 	
 	let competitions = [];
-	let filter = 'all'; // all, active, voting, completed
+	let filter = 'active'; // all, active, voting, completed
 	let loading = true;
 	let error = null;
 	
@@ -92,37 +92,37 @@
 				</div>
 				
 				<div class="filters">
-					<button 
-						class="filter-btn" 
-						class:active={filter === 'all'}
-						on:click={() => filter = 'all'}
-					>
-						Alle
-						<span class="count">{getFilterCount('all')}</span>
-					</button>
-					<button 
-						class="filter-btn" 
+					<button
+						class="filter-btn"
 						class:active={filter === 'active'}
 						on:click={() => filter = 'active'}
 					>
 						Aktiv
 						<span class="count">{getFilterCount('active')}</span>
 					</button>
-					<button 
-						class="filter-btn" 
+					<button
+						class="filter-btn"
 						class:active={filter === 'voting'}
 						on:click={() => filter = 'voting'}
 					>
 						Voting
 						<span class="count">{getFilterCount('voting')}</span>
 					</button>
-					<button 
-						class="filter-btn" 
+					<button
+						class="filter-btn"
 						class:active={filter === 'completed'}
 						on:click={() => filter = 'completed'}
 					>
 						Beendet
 						<span class="count">{getFilterCount('completed')}</span>
+					</button>
+					<button
+						class="filter-btn"
+						class:active={filter === 'all'}
+						on:click={() => filter = 'all'}
+					>
+						Alle
+						<span class="count">{getFilterCount('all')}</span>
 					</button>
 				</div>
 			</div>
