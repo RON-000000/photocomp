@@ -1,6 +1,7 @@
 <script>
 	import { formatDate } from '$lib/data/mockData';
-	
+	import { Trophy, ThumbsUp, Star } from 'lucide-svelte';
+
 	export let competitionId;
 	export let submissions = [];
 	export let competition = null;
@@ -33,7 +34,10 @@
 
 <div class="leaderboard">
 	<div class="leaderboard-header">
-		<h3>🏆 Leaderboard</h3>
+		<h3>
+			<Trophy size={24} />
+			<span>Leaderboard</span>
+		</h3>
 		{#if showTopOnly && submissions.length > 3}
 			<a href="/competitions/{competitionId}" class="view-all">Alle anzeigen →</a>
 		{/if}
@@ -46,46 +50,56 @@
 	{:else}
 		<div class="leaderboard-table">
 			{#each displayedLeaderboard as entry, index}
-				<div class="leaderboard-row" class:winner={index < 3}>
-					<div class="rank">
+				<a href="/submissions/{entry._id}" class="leaderboard-row">
+					<div class="rank" class:top-three={index < 3}>
 						{#if index === 0}
-							🥇
+							<Trophy size={32} class="gold" />
 						{:else if index === 1}
-							🥈
+							<Trophy size={28} class="silver" />
 						{:else if index === 2}
-							🥉
+							<Trophy size={24} class="bronze" />
 						{:else}
 							<span class="rank-number">#{index + 1}</span>
 						{/if}
 					</div>
-					
+
 					<div class="submission-preview">
 						<img src={entry.imageUrl} alt={entry.title} />
 					</div>
-					
+
 					<div class="submission-info">
-						<a href="/profile/{entry.userId}" class="photographer">
-							<img src="https://i.pravatar.cc/150?u={entry.userId}" alt="User" class="avatar" />
-							<span>{entry.userId}</span>
-						</a>
+						<div class="photographer">
+							<img
+								src={entry.user?.avatar || `https://i.pravatar.cc/150?u=${entry.userId}`}
+								alt={entry.user?.username || entry.userId}
+								class="avatar"
+							/>
+							<span>{entry.user?.username || entry.userId}</span>
+						</div>
 						<p class="title">{entry.title}</p>
 					</div>
-					
+
 					<div class="scores">
 						<div class="score-item">
 							<span class="label">Community</span>
-							<span class="value">👍 {entry.votes.community}</span>
+							<span class="value">
+								<ThumbsUp size={14} />
+								{entry.votes.community}
+							</span>
 						</div>
 						<div class="score-item">
 							<span class="label">Jury</span>
-							<span class="value">⭐ {entry.votes.jury.toFixed(1)}</span>
+							<span class="value">
+								<Star size={14} />
+								{entry.votes.jury.toFixed(1)}
+							</span>
 						</div>
 						<div class="score-item total">
 							<span class="label">Total</span>
 							<span class="value total-score">{entry.totalScore.toFixed(2)}</span>
 						</div>
 					</div>
-				</div>
+				</a>
 			{/each}
 		</div>
 	{/if}
@@ -106,9 +120,13 @@
 		align-items: center;
 		margin-bottom: var(--spacing-lg);
 	}
-	
+
 	.leaderboard-header h3 {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
 		margin: 0;
+		color: var(--color-text-primary);
 	}
 	
 	.view-all {
@@ -142,22 +160,47 @@
 		align-items: center;
 		padding: var(--spacing-md);
 		border-radius: var(--radius-md);
-		transition: background-color 0.2s;
+		border: 1px solid transparent;
+		transition: all 0.2s ease;
+		text-decoration: none;
+		color: inherit;
+		cursor: pointer;
 	}
-	
+
 	.leaderboard-row:hover {
 		background-color: var(--color-surface);
+		border-color: var(--color-border);
+		transform: translateY(-1px);
+		box-shadow: var(--shadow-sm);
 	}
-	
-	.leaderboard-row.winner {
-		background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-	}
-	
+
 	.rank {
-		font-size: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		text-align: center;
 	}
-	
+
+	.rank.top-three :global(svg) {
+		transition: transform 0.2s ease;
+	}
+
+	.leaderboard-row:hover .rank.top-three :global(svg) {
+		transform: scale(1.1);
+	}
+
+	.rank :global(svg.gold) {
+		color: #FFD700;
+	}
+
+	.rank :global(svg.silver) {
+		color: #C0C0C0;
+	}
+
+	.rank :global(svg.bronze) {
+		color: #CD7F32;
+	}
+
 	.rank-number {
 		font-size: 1.25rem;
 		font-weight: 700;
@@ -181,16 +224,15 @@
 		align-items: center;
 		gap: var(--spacing-xs);
 		margin-bottom: var(--spacing-xs);
-		text-decoration: none;
 	}
-	
+
 	.photographer .avatar {
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
 		object-fit: cover;
 	}
-	
+
 	.photographer span {
 		font-size: 0.875rem;
 		font-weight: 600;
@@ -208,32 +250,42 @@
 	
 	.scores {
 		display: flex;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-xl);
 	}
-	
+
 	.score-item {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.375rem;
 	}
-	
+
 	.score-item .label {
-		font-size: 0.75rem;
+		font-size: 0.8125rem;
 		color: var(--color-text-muted);
-		font-weight: 500;
+		font-weight: 600;
 		text-transform: uppercase;
+		letter-spacing: 0.025em;
 	}
-	
+
 	.score-item .value {
-		font-size: 0.875rem;
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 1rem;
 		font-weight: 600;
 		color: var(--color-text-primary);
 	}
-	
+
+	.score-item .value :global(svg) {
+		color: var(--color-text-muted);
+		flex-shrink: 0;
+	}
+
 	.score-item.total .value {
-		font-size: 1.125rem;
+		font-size: 1.25rem;
 		color: var(--color-primary);
+		font-weight: 700;
 	}
 	
 	@media (max-width: 768px) {

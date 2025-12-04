@@ -18,7 +18,18 @@
 	let deleting = false;
 
 	$: submissionId = $page.params.submission;
-	$: canDelete = submission && $currentUser && (submission.userId === $currentUser._id) && competition && new Date(competition.deadline) > new Date();
+	$: canDelete = submission && $currentUser && competition && (submission.userId === $currentUser._id || submission.userId === $currentUser.sub) && new Date(competition.deadline) > new Date();
+	$: {
+		if (submission && $currentUser && competition) {
+			console.log('Debug canDelete:', {
+				submissionUserId: submission.userId,
+				currentUserId: $currentUser._id,
+				canDelete: canDelete,
+				deadline: competition.deadline,
+				isBeforeDeadline: new Date(competition.deadline) > new Date()
+			});
+		}
+	}
 
 	onMount(async () => {
 		await loadData();
@@ -183,7 +194,7 @@
 			{#if canDelete}
 				<button on:click={handleDelete} class="delete-button" disabled={deleting}>
 					<Trash2 size={20} />
-					<span>{deleting ? 'Löschen...' : 'Submission löschen'}</span>
+					<span>{deleting ? 'Löschen...' : 'Beitrag löschen'}</span>
 				</button>
 			{/if}
 		</div>
@@ -204,7 +215,7 @@
 						class="user-avatar"
 					/>
 					<div class="user-info">
-						<h3 class="user-name">{submission.user?.username || submission.userId}</h3>
+						<a href="/profile/{submission.user?.username || submission.userId}" class="user-name">{submission.user?.username || submission.userId}</a>
 						<div class="submission-date">
 							<Calendar size={14} />
 							<span>{formatDate(submission.createdAt)}</span>
@@ -402,20 +413,18 @@
 		align-items: center;
 		gap: var(--spacing-xs);
 		padding: var(--spacing-sm) var(--spacing-md);
-		color: white;
-		background: var(--color-error);
-		border: 1px solid var(--color-error);
+		color: var(--color-text-secondary);
+		background: white;
+		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		cursor: pointer;
 		transition: all 0.2s ease;
-		font-weight: 600;
 	}
 
 	.delete-button:hover:not(:disabled) {
-		background: #c53030;
-		border-color: #c53030;
-		transform: translateY(-2px);
-		box-shadow: var(--shadow-md);
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+		background: var(--color-surface);
 	}
 
 	.delete-button:disabled {
@@ -476,6 +485,13 @@
 		font-weight: 600;
 		color: var(--color-text-primary);
 		margin: 0;
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.user-name:hover {
+		color: var(--color-primary);
+		text-decoration: underline;
 	}
 
 	.submission-date {
