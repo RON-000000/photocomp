@@ -5,7 +5,7 @@
 		logout,
 		isAuthenticated,
 	} from "$lib/stores/auth0";
-	import { Camera, Menu, X, User, LogOut, Settings } from "lucide-svelte";
+	import { Camera, Menu, X, User, LogOut, Settings, Award } from "lucide-svelte";
 
 	let mobileMenuOpen = false;
 	let userMenuOpen = false;
@@ -76,6 +76,12 @@
 									<a href="/admin" class="dropdown-item">
 										<Settings size={18} />
 										<span>Admin</span>
+									</a>
+								{/if}
+								{#if $currentUser?.role === "jury" || $currentUser?.role === "admin"}
+									<a href="/jury" class="dropdown-item">
+										<Award size={18} />
+										<span>Jury Dashboard</span>
 									</a>
 								{/if}
 								<a

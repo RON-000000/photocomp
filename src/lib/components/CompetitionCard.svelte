@@ -1,9 +1,12 @@
 <script>
 	import { formatDate } from '$lib/data/mockData';
 	import { Users, Image, Calendar } from 'lucide-svelte';
-	
+
 	export let competition;
-	
+	export let juryMode = false; // Optional: true wenn von Jury Dashboard aufgerufen
+
+	$: targetUrl = juryMode ? `/jury/competitions/${competition._id}` : `/competitions/${competition._id}`;
+
 	// Berechne Status basierend auf Datum
 	$: currentStatus = calculateStatus(competition);
 	$: statusBadge = currentStatus === 'active' ? 'success' : 
@@ -39,7 +42,7 @@
 	}
 </script>
 
-<a href="/competitions/{competition._id}" class="competition-card">
+<a href={targetUrl} class="competition-card">
 	<div class="card-image-wrapper">
 		<img src={competition.imageUrl} alt={competition.title} class="card-image" />
 		<div class="card-overlay">

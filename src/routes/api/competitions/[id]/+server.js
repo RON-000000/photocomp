@@ -1,14 +1,15 @@
 import { json } from '@sveltejs/kit';
-import { getCompetitionById, updateCompetition, deleteCompetition } from '$lib/server/models.js';
+import { getCompetitionById, updateCompetition, deleteCompetition, checkAndUpdateCompetitionStatus } from '$lib/server/models.js';
 
 export async function GET({ params }) {
 	try {
-		const competition = await getCompetitionById(params.id);
-		
+		// Check and update status automatically
+		const competition = await checkAndUpdateCompetitionStatus(params.id);
+
 		if (!competition) {
 			return json({ error: 'Competition nicht gefunden' }, { status: 404 });
 		}
-		
+
 		return json(competition);
 	} catch (error) {
 		console.error('Get competition error:', error);

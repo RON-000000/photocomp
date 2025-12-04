@@ -100,8 +100,15 @@ export async function getActiveCompetitions() {
 
 export async function getCompletedCompetitions() {
 	const competitions = await getCollection('competitions');
-	return await competitions.find({ 
-		status: 'completed' 
+	return await competitions.find({
+		status: 'completed'
+	}).sort({ createdAt: -1 }).toArray();
+}
+
+export async function getJuryCompetitions(username) {
+	const competitions = await getCollection('competitions');
+	return await competitions.find({
+		juryMembers: username
 	}).sort({ createdAt: -1 }).toArray();
 }
 
@@ -134,6 +141,32 @@ export async function deleteCompetition(competitionId) {
 	await submissions.deleteMany({ competitionId });
 
 	return result;
+}
+
+export async function updateCompetitionStatus(competitionId, status) {
+	const competitions = await getCollection('competitions');
+	return await competitions.updateOne(
+		{ _id: competitionId },
+		{ $set: { status, updatedAt: new Date() } }
+	);
+}
+
+export async function checkAndUpdateCompetitionStatus(competitionId) {
+	const competitions = await getCollection('competitions');
+	const competition = await competitions.findOne({ _id: competitionId });
+
+	if (!competition) return null;
+
+	const now = new Date();
+	const deadline = new Date(competition.deadline);
+
+	// Automatically transition to voting if deadline passed
+	if (now > deadline && competition.status === 'active') {
+		await updateCompetitionStatus(competitionId, 'voting');
+		competition.status = 'voting';
+	}
+
+	return competition;
 }
 
 // ==================== SUBMISSIONS ====================
@@ -279,6 +312,67 @@ export async function deleteSubmission(submissionId, userId) {
 	await updateUserStats(userId, { 'stats.submissions': -1 });
 
 	return result;
+}
+
+// ==================== JURY RATINGS ====================
+
+export async function saveJuryRating(ratingData) {
+	const ratings = await getCollection('juryRatings');
+
+	const rating = {
+		submissionId: ratingData.submissionId,
+		competitionId: ratingData.competitionId,
+		jurorUsername: ratingData.jurorUsername,
+		rating: ratingData.rating,
+		comment: ratingData.comment,
+		createdAt: new Date(),
+		updatedAt: new Date()
+	};
+
+	// Upsert: Update if exists, insert if not
+	await ratings.updateOne(
+		{
+			submissionId: ratingData.submissionId,
+			jurorUsername: ratingData.jurorUsername
+		},
+		{ $set: rating },
+		{ upsert: true }
+	);
+
+	// Update submission's jury vote average
+	await updateSubmissionJuryAverage(ratingData.submissionId);
+
+	return rating;
+}
+
+export async function getJuryRating(submissionId, jurorUsername) {
+	const ratings = await getCollection('juryRatings');
+	return await ratings.findOne({
+		submissionId: submissionId,
+		jurorUsername: jurorUsername
+	});
+}
+
+async function updateSubmissionJuryAverage(submissionId) {
+	const ratings = await getCollection('juryRatings');
+	const submissions = await getCollection('submissions');
+
+	// Get all ratings for this submission
+	const allRatings = await ratings.find({ submissionId: submissionId }).toArray();
+
+	if (allRatings.length === 0) {
+		return;
+	}
+
+	// Calculate average
+	const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
+	const average = sum / allRatings.length;
+
+	// Update submission
+	await submissions.updateOne(
+		{ _id: submissionId },
+		{ $set: { 'votes.jury': average } }
+	);
 }
 
 // ==================== HELPER FUNCTIONS ====================

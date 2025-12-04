@@ -123,7 +123,7 @@ export async function handleCallback() {
 // Sync User with Backend
 async function syncUserWithBackend(auth0User) {
 	console.log('🔍 Syncing user:', auth0User);
-	
+
 	try {
 		// Safe username generation
 		let username;
@@ -136,7 +136,7 @@ async function syncUserWithBackend(auth0User) {
 		} else {
 			username = 'user' + Date.now();
 		}
-		
+
 		const response = await fetch('/api/auth/sync', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -148,9 +148,9 @@ async function syncUserWithBackend(auth0User) {
 				username: username
 			})
 		});
-		
+
 		console.log('📡 Sync response status:', response.status);
-		
+
 		if (response.ok) {
 			const user = await response.json();
 			console.log('✅ User synced:', user);
@@ -161,5 +161,20 @@ async function syncUserWithBackend(auth0User) {
 		}
 	} catch (error) {
 		console.error('💥 User sync error:', error);
+	}
+}
+
+// Refresh user data from database
+export async function refreshUserData() {
+	if (!clientInstance) return;
+
+	try {
+		const authenticated = await clientInstance.isAuthenticated();
+		if (authenticated) {
+			const auth0User = await clientInstance.getUser();
+			await syncUserWithBackend(auth0User);
+		}
+	} catch (error) {
+		console.error('Error refreshing user data:', error);
 	}
 }

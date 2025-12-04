@@ -43,18 +43,16 @@ export async function POST({ request }) {
 			await users.insertOne(newUser);
 			user = newUser;
 		} else {
-			// Update existing user
+			// Update existing user - only update email, keep user's custom name and avatar
 			await users.updateOne(
 				{ auth0Id },
 				{
 					$set: {
-						name,
-						avatar,
 						email
 					}
 				}
 			);
-			
+
 			user = await users.findOne({ auth0Id });
 		}
 		

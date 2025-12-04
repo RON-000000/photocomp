@@ -1,10 +1,10 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { currentUser } from '$lib/stores/auth0';
+	import { currentUser, refreshUserData } from '$lib/stores/auth0';
 	import { User, MapPin, Link as LinkIcon, FileText, Camera } from 'lucide-svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
-	
+
 	let loading = false;
 	let formData = {
 		name: '',

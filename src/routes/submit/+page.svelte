@@ -16,10 +16,16 @@
 	let settings = '';
 	let isSubmitting = false;
 	let loading = true;
-	
+
 	onMount(async () => {
 		try {
-			competitions = await getCompetitions('active');
+			const allCompetitions = await getCompetitions('active');
+			// Filter nur Competitions, deren Deadline noch nicht abgelaufen ist
+			const now = new Date();
+			competitions = allCompetitions.filter(comp => {
+				const deadline = new Date(comp.deadline);
+				return deadline > now;
+			});
 		} catch (error) {
 			console.error('Error loading competitions:', error);
 		} finally {
