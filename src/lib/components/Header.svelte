@@ -51,7 +51,6 @@
 			<div class="nav-links" class:open={mobileMenuOpen}>
 				<a href="/">Home</a>
 				<a href="/competitions">Wettbewerbe</a>
-				<a href="/archive">Archiv</a>
 				{#if $isAuthenticated}
 					<a href="/submit">Einreichen</a>
 				{/if}
@@ -81,7 +80,7 @@
 								{#if $currentUser?.role === "jury" || $currentUser?.role === "admin"}
 									<a href="/jury" class="dropdown-item">
 										<Award size={18} />
-										<span>Jury Dashboard</span>
+										<span>Jury</span>
 									</a>
 								{/if}
 								<a
@@ -96,14 +95,14 @@
 									on:click={handleLogout}
 								>
 									<LogOut size={18} />
-									<span>Logout</span>
+									<span>Abmelden</span>
 								</button>
 							</div>
 						{/if}
 					</div>
 				{:else}
 					<button class="btn btn-primary" on:click={handleLogin}>
-						Login
+						Anmelden
 					</button>
 				{/if}
 

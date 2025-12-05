@@ -36,7 +36,7 @@
 	<div class="leaderboard-header">
 		<h3>
 			<Trophy size={24} />
-			<span>Leaderboard</span>
+			<span>Rangliste</span>
 		</h3>
 		{#if showTopOnly && submissions.length > 3}
 			<a href="/competitions/{competitionId}" class="view-all">Alle anzeigen →</a>
@@ -45,7 +45,7 @@
 	
 	{#if displayedLeaderboard.length === 0}
 		<div class="empty-state">
-			<p>Noch keine Submissions im Leaderboard.</p>
+			<p>Noch keine Beiträge in der Rangliste.</p>
 		</div>
 	{:else}
 		<div class="leaderboard-table">

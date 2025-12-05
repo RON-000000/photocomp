@@ -481,25 +481,36 @@ export async function hasUserVoted(submissionId, userId) {
 export async function getUserByUsername(username) {
 	const users = await getCollection('users');
 	const user = await users.findOne({ username });
-	
+
 	if (!user) {
 		throw new Error('User nicht gefunden');
 	}
-	
+
 	// Get user's submissions
 	const submissions = await getCollection('submissions');
 	const userSubmissions = await submissions
 		.find({ userId: user._id })
 		.sort({ createdAt: -1 })
 		.toArray();
-	
+
+	// Add user data to each submission
+	const submissionsWithUser = userSubmissions.map(sub => ({
+		...sub,
+		user: {
+			_id: user._id,
+			username: user.username,
+			name: user.name,
+			avatar: user.avatar
+		}
+	}));
+
 	// Calculate stats
 	const totalVotes = userSubmissions.reduce((sum, sub) => sum + (sub.votes?.community || 0), 0);
 	const wins = 0; // TODO: Implement wins calculation based on competition winners
-	
+
 	return {
 		...user,
-		submissions: userSubmissions,
+		submissions: submissionsWithUser,
 		stats: {
 			submissions: userSubmissions.length,
 			wins: wins,

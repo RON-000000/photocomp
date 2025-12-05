@@ -188,7 +188,7 @@
 					<div class="stat-item">
 						<Image size={20} />
 						<div>
-							<div class="stat-label">Submissions</div>
+							<div class="stat-label">Beiträge</div>
 							<div class="stat-value">{competition.submissionCount || 0}</div>
 						</div>
 					</div>
@@ -265,7 +265,7 @@
 
 							<ul class="jury-list">
 								{#each competition.juryMembers as juryMember}
-									<li>@{juryMember}</li>
+									<li><a href="/profile/{juryMember}" class="jury-link">@{juryMember}</a></li>
 								{/each}
 							</ul>
 						</div>
@@ -280,7 +280,7 @@
 				<!-- Submissions Gallery -->
 				<section class="section">
 					<div class="section-header">
-						<h2>Alle Submissions</h2>
+						<h2>Alle Beiträge</h2>
 						<span class="count">{submissions.length}</span>
 					</div>
 
@@ -328,7 +328,7 @@
 											class:active={sortBy === 'votes'}
 											on:click={() => sortBy = 'votes'}
 										>
-											Votes
+											Stimmen
 										</button>
 										<button
 											class="sort-btn"
@@ -441,7 +441,7 @@
 						
 						<ul class="jury-list">
 							{#each competition.juryMembers as juryMember}
-								<li>@{juryMember}</li>
+								<li><a href="/profile/{juryMember}" class="jury-link">@{juryMember}</a></li>
 							{/each}
 						</ul>
 					</div>
@@ -931,10 +931,19 @@
 	}
 	
 	.jury-list li {
-		font-size: 0.9375rem;
-		color: var(--color-primary);
 		margin-bottom: var(--spacing-xs);
+	}
+
+	.jury-link {
+		font-size: 0.9375rem;
+		color: var(--color-text-primary);
 		font-weight: 500;
+		text-decoration: none;
+		transition: text-decoration 0.2s;
+	}
+
+	.jury-link:hover {
+		text-decoration: underline;
 	}
 
 	/* Mobile Optimizations */
@@ -959,35 +968,48 @@
 		.hero-image {
 			height: 400px;
 		}
-		
+
 		.hero-content {
 			padding-top: 150px;
 			padding-bottom: var(--spacing-2xl);
 		}
-		
+
 		.hero-content h1 {
 			font-size: 2rem;
 		}
-		
+
 		.hero-subtitle {
 			font-size: 1rem;
 		}
-		
+
 		.stats-section {
 			grid-template-columns: 1fr;
 			gap: var(--spacing-md);
 		}
-		
+
 		.submissions-grid {
 			grid-template-columns: 1fr;
 			gap: var(--spacing-xl);
 		}
-		
+
 		.close-btn {
 			top: var(--spacing-md);
 			right: var(--spacing-md);
 			width: 40px;
 			height: 40px;
+		}
+
+		.filter-sort-section {
+			padding: var(--spacing-md);
+		}
+
+		.sort-btn {
+			font-size: 0.875rem;
+			padding: var(--spacing-sm) var(--spacing-md);
+		}
+
+		.sort-controls {
+			gap: var(--spacing-sm);
 		}
 	}
 	

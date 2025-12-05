@@ -29,7 +29,6 @@
 				<h4>Plattform</h4>
 				<ul class="footer-links">
 					<li><a href="/competitions">Wettbewerbe</a></li>
-					<li><a href="/archive">Archiv</a></li>
 					<li><a href="/submit">Foto einreichen</a></li>
 				</ul>
 			</div>

@@ -25,11 +25,11 @@
 		<div class="user-info">
 			<img
 				src={submission.user?.avatar || `https://i.pravatar.cc/150?u=${submission.userId}`}
-				alt={submission.user?.username || 'User'}
+				alt={submission.user?.name || 'User'}
 				class="user-avatar"
 			/>
 			<div class="user-details">
-				<div class="user-name">{submission.user?.username || submission.userId}</div>
+				<div class="user-name">{submission.user?.name || submission.user?.username || submission.userId}</div>
 				<div class="submission-date">{formatDate(submission.createdAt)}</div>
 			</div>
 		</div>
@@ -39,23 +39,19 @@
 		<p class="description">{submission.description}</p>
 		
 		<!-- Camera Info -->
-		{#if submission.metadata?.camera && submission.metadata.camera !== 'N/A'}
-			<div class="camera-info">
-				<Camera size={14} />
-				<span>{submission.metadata.camera}</span>
-				{#if submission.metadata.settings && submission.metadata.settings !== 'N/A'}
-					<Aperture size={14} />
-					<span>{submission.metadata.settings}</span>
-				{/if}
-			</div>
-		{/if}
+		<div class="camera-info">
+			<Camera size={14} />
+			<span>{submission.metadata?.camera && submission.metadata.camera !== 'N/A' ? submission.metadata.camera : '-'}</span>
+			<Aperture size={14} />
+			<span>{submission.metadata?.settings && submission.metadata.settings !== 'N/A' ? submission.metadata.settings : '-'}</span>
+		</div>
 		
 		<!-- Stats -->
 		<div class="stats">
 			<div class="stat-item">
 				<ThumbsUp size={16} />
 				<span class="stat-value">{submission.votes?.community || 0}</span>
-				<span class="stat-label">Votes</span>
+				<span class="stat-label">Stimmen</span>
 			</div>
 			<div class="stat-item">
 				<Star size={16} />

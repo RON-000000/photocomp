@@ -2,8 +2,10 @@
 	import { onMount } from 'svelte';
 	import { getCompetitions } from '$lib/api.js';
 	import CompetitionCard from '$lib/components/CompetitionCard.svelte';
-	import { Trophy, Filter } from 'lucide-svelte';
-	
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import { Filter } from 'lucide-svelte';
+
 	let competitions = [];
 	let filter = 'active'; // all, active, voting, completed
 	let loading = true;
@@ -47,25 +49,13 @@
 <div class="page-wrapper">
 	<div class="container">
 		<!-- Page Header -->
-		<div class="page-header">
-			<div class="header-content">
-				<div class="icon-wrapper">
-					<Trophy size={32} />
-				</div>
-				<div>
-					<h1>Wettbewerbe</h1>
-					<p class="page-subtitle">
-						Nimm an spannenden Foto-Wettbewerben teil und zeige dein Können
-					</p>
-				</div>
-			</div>
-		</div>
+		<header class="page-header">
+			<h1>Wettbewerbe</h1>
+			<p>Nimm an spannenden Foto-Wettbewerben teil und zeige dein Können</p>
+		</header>
 		
 		{#if loading}
-			<div class="loading-state">
-				<span class="loading"></span>
-				<p>Lade Wettbewerbe...</p>
-			</div>
+			<LoadingSpinner message="Lade Wettbewerbe..." />
 		{:else if error}
 			<div class="error-state">
 				<p>Fehler beim Laden: {error}</p>
@@ -125,12 +115,11 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="empty-state">
-					<p>Keine Wettbewerbe in dieser Kategorie gefunden.</p>
-					<button class="btn btn-secondary" on:click={() => filter = 'all'}>
-						Alle Wettbewerbe anzeigen
-					</button>
-				</div>
+				<EmptyState
+					message="Keine Wettbewerbe in dieser Kategorie gefunden."
+					actionText="Alle Wettbewerbe anzeigen"
+					onAction={() => filter = 'all'}
+				/>
 			{/if}
 		{/if}
 	</div>
@@ -138,46 +127,26 @@
 
 <style>
 	.page-wrapper {
-		padding: var(--spacing-4xl) 0;
+		min-height: calc(100vh - 60px);
+		background: var(--color-surface);
+		padding: var(--spacing-2xl) 0;
 	}
 	
 	.page-header {
-		margin-bottom: var(--spacing-4xl);
+		margin-bottom: var(--spacing-2xl);
 	}
-	
-	.header-content {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--spacing-lg);
-	}
-	
-	.icon-wrapper {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 64px;
-		height: 64px;
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-		color: var(--color-primary);
-		flex-shrink: 0;
-	}
-	
+
 	.page-header h1 {
-		font-size: 2.5rem;
+		font-size: 2rem;
 		font-weight: 700;
-		margin-bottom: var(--spacing-xs);
-		letter-spacing: -0.03em;
+		margin: 0 0 var(--spacing-sm) 0;
 	}
-	
-	.page-subtitle {
-		font-size: 1.125rem;
+
+	.page-header p {
 		color: var(--color-text-secondary);
 		margin: 0;
-		line-height: 1.6;
 	}
-	
-	.loading-state,
+
 	.error-state {
 		text-align: center;
 		padding: var(--spacing-4xl);
@@ -188,13 +157,12 @@
 		justify-content: center;
 		gap: var(--spacing-lg);
 	}
-	
-	.loading-state p,
+
 	.error-state p {
 		color: var(--color-text-secondary);
 		margin: 0;
 	}
-	
+
 	.filters-section {
 		margin-bottom: var(--spacing-3xl);
 		padding: var(--spacing-xl);
@@ -271,85 +239,36 @@
 		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 		gap: var(--spacing-2xl);
 	}
-	
-	.empty-state {
-		text-align: center;
-		padding: var(--spacing-4xl);
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--color-border);
-	}
-	
-	.empty-state p {
-		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-xl);
-		font-size: 1.125rem;
-	}
-	
+
 	/* Mobile Optimizations */
 	@media (max-width: 768px) {
-		.page-wrapper {
-			padding: var(--spacing-3xl) 0;
-		}
-		
-		.page-header {
-			margin-bottom: var(--spacing-3xl);
-		}
-		
-		.header-content {
-			flex-direction: column;
-			gap: var(--spacing-md);
-		}
-		
-		.icon-wrapper {
-			width: 56px;
-			height: 56px;
-		}
-		
-		.page-header h1 {
-			font-size: 2rem;
-		}
-		
-		.page-subtitle {
-			font-size: 1rem;
-		}
-		
 		.filters-section {
 			padding: var(--spacing-lg);
 			margin-bottom: var(--spacing-2xl);
 		}
-		
+
 		.filters {
 			gap: var(--spacing-sm);
 		}
-		
+
 		.filter-btn {
 			flex: 1;
 			min-width: 0;
 			justify-content: center;
 		}
-		
+
 		.competitions-grid {
 			grid-template-columns: 1fr;
 			gap: var(--spacing-xl);
 		}
-		
-		.loading-state,
-		.error-state {
-			padding: var(--spacing-3xl);
-			min-height: 300px;
-		}
 	}
-	
+
+
 	@media (max-width: 480px) {
-		.page-header h1 {
-			font-size: 1.75rem;
-		}
-		
 		.filters {
 			flex-direction: column;
 		}
-		
+
 		.filter-btn {
 			width: 100%;
 		}
