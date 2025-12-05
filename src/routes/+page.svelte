@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getCompetitions } from '$lib/api.js';
 	import CompetitionCard from '$lib/components/CompetitionCard.svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
 	
 	let activeCompetitions = [];
 	let loading = true;
@@ -35,9 +36,9 @@
 				<a href="/competitions" class="btn btn-primary">
 					Wettbewerbe entdecken
 				</a>
-				<a href="/submit" class="btn btn-secondary">
+				<SecondaryButton href="/submit">
 					Foto einreichen
-				</a>
+				</SecondaryButton>
 			</div>
 		</div>
 	</div>
@@ -70,9 +71,9 @@
 			
 			{#if activeCompetitions.length > 3}
 				<div class="view-more">
-					<a href="/competitions" class="btn btn-secondary">
+					<SecondaryButton href="/competitions">
 						Alle Wettbewerbe anzeigen
-					</a>
+					</SecondaryButton>
 				</div>
 			{/if}
 		</div>

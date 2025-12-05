@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { currentUser } from '$lib/stores/auth0';
 	import { Users, Trophy, Image, Activity, Search } from 'lucide-svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let stats = null;
 	let users = [];
@@ -126,10 +127,10 @@
 			<div class="actions-section">
 				<h2>Aktionen</h2>
 				<div class="action-buttons">
-					<a href="/admin/competitions/create" class="btn btn-primary">
+					<PrimaryButton href="/admin/competitions/create">
 						<Trophy size={20} />
 						<span>Wettbewerb erstellen</span>
-					</a>
+					</PrimaryButton>
 				</div>
 			</div>
 			

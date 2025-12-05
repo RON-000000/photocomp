@@ -7,32 +7,12 @@
 
 	$: targetUrl = juryMode ? `/jury/competitions/${competition._id}` : `/competitions/${competition._id}`;
 
-	// Berechne Status basierend auf Datum
-	$: currentStatus = calculateStatus(competition);
-	$: statusBadge = currentStatus === 'active' ? 'success' : 
+	// Verwende den Status direkt aus der Datenbank
+	$: currentStatus = competition.status || 'active';
+	$: statusBadge = currentStatus === 'active' ? 'success' :
 	                 currentStatus === 'voting' ? 'warning' : 'primary';
-	$: statusText = currentStatus === 'active' ? 'AKTIV' : 
+	$: statusText = currentStatus === 'active' ? 'AKTIV' :
 	                currentStatus === 'voting' ? 'VOTING' : 'BEENDET';
-	
-	function calculateStatus(comp) {
-		const now = new Date();
-		const deadline = new Date(comp.deadline);
-		const startDate = new Date(comp.startDate);
-		
-		// Wenn noch nicht gestartet
-		if (now < startDate) {
-			return 'upcoming';
-		}
-		
-		// Wenn abgelaufen
-		if (now > deadline) {
-			return 'completed';
-		}
-		
-		// Ansonsten nutze den gespeicherten Status aus der DB
-		// oder default zu 'active'
-		return comp.status || 'active';
-	}
 	
 	// Formatiere Datum für Anzeige
 	function formatDeadline(dateString) {

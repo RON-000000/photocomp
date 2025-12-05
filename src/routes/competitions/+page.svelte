@@ -31,17 +31,7 @@
 	
 	function filterCompetitions(comps, currentFilter) {
 		if (currentFilter === 'all') return comps;
-		return comps.filter(c => {
-			// Berechne Status basierend auf Datum
-			const now = new Date();
-			const deadline = new Date(c.deadline);
-			
-			if (now > deadline) {
-				return currentFilter === 'completed';
-			}
-			
-			return c.status === currentFilter;
-		});
+		return comps.filter(c => c.status === currentFilter);
 	}
 	
 	function getFilterCount(status) {

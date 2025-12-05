@@ -88,7 +88,23 @@ export async function getCompetitionById(competitionId) {
 
 export async function getAllCompetitions() {
 	const competitions = await getCollection('competitions');
-	return await competitions.find({}).sort({ createdAt: -1 }).toArray();
+	const allCompetitions = await competitions.find({}).sort({ createdAt: -1 }).toArray();
+
+	// Check and update status for each competition
+	const now = new Date();
+	const updatedCompetitions = await Promise.all(
+		allCompetitions.map(async (comp) => {
+			const deadline = new Date(comp.deadline);
+			// Auto-transition to voting if deadline passed
+			if (now > deadline && comp.status === 'active') {
+				await updateCompetitionStatus(comp._id, 'voting');
+				return { ...comp, status: 'voting' };
+			}
+			return comp;
+		})
+	);
+
+	return updatedCompetitions;
 }
 
 export async function getActiveCompetitions() {
@@ -107,9 +123,25 @@ export async function getCompletedCompetitions() {
 
 export async function getJuryCompetitions(username) {
 	const competitions = await getCollection('competitions');
-	return await competitions.find({
+	const juryCompetitions = await competitions.find({
 		juryMembers: username
 	}).sort({ createdAt: -1 }).toArray();
+
+	// Check and update status for each competition
+	const now = new Date();
+	const updatedCompetitions = await Promise.all(
+		juryCompetitions.map(async (comp) => {
+			const deadline = new Date(comp.deadline);
+			// Auto-transition to voting if deadline passed
+			if (now > deadline && comp.status === 'active') {
+				await updateCompetitionStatus(comp._id, 'voting');
+				return { ...comp, status: 'voting' };
+			}
+			return comp;
+		})
+	);
+
+	return updatedCompetitions;
 }
 
 export async function updateCompetition(competitionId, updates) {

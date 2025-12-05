@@ -3,8 +3,10 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentUser } from '$lib/stores/auth0.js';
-	import { ArrowLeft, ChevronLeft, ChevronRight, Camera, Aperture, Info, Star } from 'lucide-svelte';
+	import { ChevronLeft, ChevronRight, Camera, Aperture, Info, Star } from 'lucide-svelte';
 	import { formatDate } from '$lib/data/mockData';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import BackButton from '$lib/components/BackButton.svelte';
 
 	let competition = null;
 	let submissions = [];
@@ -21,7 +23,9 @@
 	$: currentSubmission = submissions[currentIndex];
 	$: progress = submissions.length > 0 ? `${currentIndex + 1} / ${submissions.length}` : '0 / 0';
 	$: isJury = $currentUser && ($currentUser.role === 'jury' || $currentUser.role === 'admin');
+	$: isAdmin = $currentUser && $currentUser.role === 'admin';
 	$: canCompleteCompetition = competition?.status === 'voting' && isJury;
+	$: canEditRating = isAdmin || competition?.status !== 'completed';
 
 	// Load rating when submission changes
 	$: if (currentSubmission && $currentUser) {
@@ -195,20 +199,13 @@
 	<div class="container">
 		<!-- Header with Back Button and Complete Competition -->
 		<div class="header-actions">
-			<button class="back-button" on:click={goBack}>
-				<ArrowLeft size={20} />
-				<span>Zurück</span>
-			</button>
+			<BackButton on:click={goBack} />
 			<div class="header-right">
 				<span class="progress">{progress}</span>
 				{#if canCompleteCompetition}
-					<button
-						class="complete-btn"
-						on:click={completeCompetition}
-						disabled={completingCompetition}
-					>
+					<PrimaryButton on:click={completeCompetition} disabled={completingCompetition}>
 						{completingCompetition ? 'Wird beendet...' : 'Wettbewerb beenden'}
-					</button>
+					</PrimaryButton>
 				{/if}
 			</div>
 		</div>
@@ -259,7 +256,9 @@
 			<div class="content-section">
 				<!-- Competition Info -->
 				<div class="competition-header">
-					<h2 class="competition-title">{competition.title}</h2>
+					<a href="/competitions/{competition._id}" class="competition-title-link">
+						<h2 class="competition-title">{competition.title}</h2>
+					</a>
 					<p class="competition-theme">{competition.theme}</p>
 				</div>
 
@@ -272,6 +271,12 @@
 				<!-- Rating Section -->
 				<div class="rating-section">
 					<h3 class="section-title">Deine Bewertung</h3>
+
+					{#if !canEditRating}
+						<div class="competition-completed-notice">
+							<p>Dieser Wettbewerb ist beendet. Bewertungen können nicht mehr geändert werden.</p>
+						</div>
+					{/if}
 
 					<div class="rating-control">
 						<div class="rating-header">
@@ -286,6 +291,7 @@
 							step="0.5"
 							bind:value={rating}
 							class="rating-slider"
+							disabled={!canEditRating}
 						/>
 						<div class="rating-scale">
 							<span>1</span>
@@ -304,16 +310,13 @@
 							placeholder="Interne Notizen zur Bewertung..."
 							rows="4"
 							class="comment-textarea"
+							disabled={!canEditRating}
 						></textarea>
 					</div>
 
-					<button
-						class="save-btn"
-						on:click={saveRating}
-						disabled={saving}
-					>
+					<PrimaryButton on:click={saveRating} disabled={saving || !canEditRating} fullWidth={true}>
 						{saving ? 'Speichern...' : 'Bewertung speichern'}
-					</button>
+					</PrimaryButton>
 				</div>
 
 				<!-- Metadata Toggle -->
@@ -360,6 +363,13 @@
 {/if}
 
 <style>
+	/* Container */
+	.container {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: var(--spacing-xl);
+	}
+
 	/* Loading & Error States */
 	.loading-state {
 		display: flex;
@@ -406,56 +416,10 @@
 		gap: var(--spacing-lg);
 	}
 
-	.back-button {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		padding: var(--spacing-sm) var(--spacing-md);
-		color: var(--color-text-secondary);
-		background: white;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.back-button:hover {
-		color: var(--color-primary);
-		border-color: var(--color-primary);
-		background: var(--color-surface);
-	}
-
 	.progress {
 		color: var(--color-text-secondary);
 		font-size: 0.875rem;
 		font-weight: 500;
-	}
-
-	.complete-btn {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		padding: var(--spacing-sm) var(--spacing-lg);
-		background: var(--color-primary);
-		color: white;
-		border-radius: var(--radius-md);
-		font-weight: 500;
-		font-size: 0.875rem;
-		cursor: pointer;
-		transition: all 0.2s;
-		white-space: nowrap;
-	}
-
-	.complete-btn:hover:not(:disabled) {
-		background: var(--color-primary-dark);
-		transform: translateY(-1px);
-		box-shadow: var(--shadow-md);
-	}
-
-	.complete-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
 	}
 
 	/* Main Layout */
@@ -593,6 +557,16 @@
 		background: white;
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--color-border);
+	}
+
+	.competition-title-link {
+		text-decoration: none;
+		color: inherit;
+		display: inline-block;
+	}
+
+	.competition-title-link:hover .competition-title {
+		text-decoration: underline;
 	}
 
 	.competition-title {
@@ -740,36 +714,25 @@
 		box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 	}
 
-	.save-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		padding: var(--spacing-md) var(--spacing-xl);
-		font-size: 0.9375rem;
-		font-weight: 500;
-		border: 1px solid transparent;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		transition: all 0.2s;
-		text-decoration: none;
-		font-family: var(--font-sans);
-		letter-spacing: -0.01em;
-		background: var(--color-primary);
-		color: white;
-		border-color: var(--color-primary);
-	}
-
-	.save-btn:hover:not(:disabled) {
-		background: var(--color-primary-hover);
-		color: var(--color-accent);
-		transform: translateY(-1px);
-		box-shadow: var(--shadow-md);
-	}
-
-	.save-btn:disabled {
-		opacity: 0.5;
+	.comment-textarea:disabled,
+	.rating-slider:disabled {
+		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.competition-completed-notice {
+		padding: var(--spacing-md);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--spacing-md);
+	}
+
+	.competition-completed-notice p {
+		margin: 0;
+		color: var(--color-text-secondary);
+		font-size: 0.875rem;
+		text-align: center;
 	}
 
 	/* Metadata Section */

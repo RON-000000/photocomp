@@ -1,10 +1,12 @@
 <script>
 	import { onMount } from 'svelte';
 	import { currentUser } from '$lib/stores/auth0';
-	import { Trophy, Filter, Award } from 'lucide-svelte';
+	import { Trophy, Filter, Award, CheckCircle, Clock } from 'lucide-svelte';
 	import { goto } from '$app/navigation';
 	import CompetitionCard from '$lib/components/CompetitionCard.svelte';
-	import { formatDate } from '$lib/data/mockData';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import StatCard from '$lib/components/StatCard.svelte';
 
 	let competitions = [];
 	let loading = true;
@@ -13,6 +15,14 @@
 
 	$: isJury = $currentUser && ($currentUser.role === 'jury' || $currentUser.role === 'admin');
 	$: filteredCompetitions = filterCompetitions(competitions, filter);
+
+	// Calculate stats from competitions data
+	$: stats = {
+		totalCompetitions: competitions.length,
+		activeCompetitions: competitions.filter(c => c.status === 'active').length,
+		votingCompetitions: competitions.filter(c => c.status === 'voting').length,
+		completedCompetitions: competitions.filter(c => c.status === 'completed').length
+	};
 
 	onMount(async () => {
 		if (!$currentUser) {
@@ -51,16 +61,7 @@
 
 	function filterCompetitions(comps, currentFilter) {
 		if (currentFilter === 'all') return comps;
-		return comps.filter(c => {
-			const now = new Date();
-			const deadline = new Date(c.deadline);
-
-			if (now > deadline) {
-				return currentFilter === 'completed';
-			}
-
-			return c.status === currentFilter;
-		});
+		return comps.filter(c => c.status === currentFilter);
 	}
 
 	function getFilterCount(status) {
@@ -81,9 +82,7 @@
 		</header>
 
 		{#if loading}
-			<div class="loading-state">
-				<span class="loading"></span>
-			</div>
+			<LoadingSpinner text="Lade Wettbewerbe..." />
 		{:else if error}
 			<div class="error-state">
 				<p>Fehler beim Laden: {error}</p>
@@ -92,6 +91,14 @@
 				</button>
 			</div>
 		{:else}
+			<!-- Stats Grid -->
+			<div class="stats-grid">
+				<StatCard icon={Trophy} value={stats.totalCompetitions} label="Meine Wettbewerbe" />
+				<StatCard icon={Clock} value={stats.activeCompetitions} label="Aktiv" />
+				<StatCard icon={Award} value={stats.votingCompetitions} label="Voting" />
+				<StatCard icon={CheckCircle} value={stats.completedCompetitions} label="Beendet" />
+			</div>
+
 			<!-- Filters -->
 			<div class="filters-section">
 				<h2 class="filters-header">Wettbewerbe</h2>
@@ -140,12 +147,11 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="empty-state">
-					<p>Keine Wettbewerbe in dieser Kategorie gefunden.</p>
-					<button class="btn btn-secondary" on:click={() => filter = 'all'}>
-						Alle Wettbewerbe anzeigen
-					</button>
-				</div>
+				<EmptyState
+					message="Keine Wettbewerbe in dieser Kategorie gefunden."
+					buttonText="Alle Wettbewerbe anzeigen"
+					buttonAction={() => filter = 'all'}
+				/>
 			{/if}
 		{/if}
 	</div>
@@ -173,26 +179,6 @@
 		margin: 0;
 	}
 
-	/* Loading State */
-	.loading-state {
-		display: flex;
-		justify-content: center;
-		padding: var(--spacing-4xl);
-	}
-
-	.loading {
-		width: 48px;
-		height: 48px;
-		border: 4px solid var(--color-border);
-		border-top-color: var(--color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to { transform: rotate(360deg); }
-	}
-
 	.error-state {
 		text-align: center;
 		padding: var(--spacing-4xl);
@@ -207,6 +193,14 @@
 	.error-state p {
 		color: var(--color-text-secondary);
 		margin: 0;
+	}
+
+	/* Stats Grid */
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: var(--spacing-lg);
+		margin-bottom: var(--spacing-2xl);
 	}
 
 	/* Filters Section */
@@ -275,20 +269,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 		gap: var(--spacing-2xl);
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: var(--spacing-4xl);
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--color-border);
-	}
-
-	.empty-state p {
-		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-xl);
-		font-size: 1.125rem;
 	}
 
 	/* Mobile Optimizations */
