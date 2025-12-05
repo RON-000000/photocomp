@@ -1,15 +1,17 @@
 import { json } from '@sveltejs/kit';
-import { getAllCompetitions, getActiveCompetitions, createCompetition, getUserByAuth0Id } from '$lib/server/models.js';
+import { getAllCompetitions, getActiveCompetitions, createCompetition } from '$lib/server/models.js';
+import { requireRole } from '$lib/server/auth.js';
+import { CompetitionCreateSchema, validateOrThrow } from '$lib/server/validation.js';
 
 export async function GET({ url }) {
 	try {
 		const status = url.searchParams.get('status');
-		
+
 		if (status === 'active') {
 			const competitions = await getActiveCompetitions();
 			return json(competitions);
 		}
-		
+
 		const competitions = await getAllCompetitions();
 		return json(competitions);
 	} catch (error) {
@@ -18,48 +20,27 @@ export async function GET({ url }) {
 	}
 }
 
-export async function POST({ request, cookies }) {
+export async function POST(event) {
 	try {
-		// Check authentication
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
-			return json({ error: 'Nicht authentifiziert' }, { status: 401 });
-		}
+		// Require admin role
+		await requireRole(event, 'admin');
 
-		// Note: In production, verify the Auth0 token here
-		// For now, we'll check if user exists and has admin role
-		const competitionData = await request.json();
+		const competitionData = await event.request.json();
 
-		// Validate required fields
-		if (!competitionData.title || !competitionData.description || !competitionData.deadline) {
-			return json({ error: 'Titel, Beschreibung und Deadline sind erforderlich' }, { status: 400 });
-		}
+		// Validate with Zod schema
+		const validated = validateOrThrow(CompetitionCreateSchema, competitionData);
 
-		if (!competitionData.startDate) {
-			return json({ error: 'Startdatum ist erforderlich' }, { status: 400 });
-		}
-
-		if (!competitionData.theme) {
-			return json({ error: 'Thema ist erforderlich' }, { status: 400 });
-		}
-
-		// Validate dates
-		const startDate = new Date(competitionData.startDate);
-		const deadline = new Date(competitionData.deadline);
+		// Additional date validation
+		const startDate = new Date(validated.startDate);
+		const deadline = new Date(validated.deadline);
 		if (startDate >= deadline) {
 			return json({ error: 'Deadline muss nach dem Startdatum liegen' }, { status: 400 });
 		}
 
-		// Validate voting weights
-		const totalWeight = (competitionData.votingWeight?.community || 0) + (competitionData.votingWeight?.jury || 0);
-		if (Math.abs(totalWeight - 1) > 0.01) {
-			return json({ error: 'Voting-Gewichte müssen zusammen 1.0 ergeben' }, { status: 400 });
-		}
-
-		const competition = await createCompetition(competitionData);
+		const competition = await createCompetition(validated);
 		return json(competition, { status: 201 });
 	} catch (error) {
 		console.error('Create competition error:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json({ error: error.message }, { status: error.status || 500 });
 	}
 }

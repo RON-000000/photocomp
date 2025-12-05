@@ -1,19 +1,24 @@
 import { json } from '@sveltejs/kit';
 import { addVoteWithUser } from '$lib/server/models.js';
+import { requireAuth } from '$lib/server/auth.js';
+import { createRateLimiter, RateLimitPresets } from '$lib/server/rateLimit.js';
 
-export async function POST({ params, request }) {
+const rateLimiter = createRateLimiter(RateLimitPresets.STRICT);
+
+export async function POST(event) {
 	try {
-		const { userId } = await request.json();
+		// Apply rate limiting
+		await rateLimiter(event);
 
-		if (!userId) {
-			return json({ error: 'User ID erforderlich' }, { status: 400 });
-		}
+		// Require authentication
+		const user = await requireAuth(event);
 
-		await addVoteWithUser(params.id, userId);
+		// Use authenticated user's ID
+		await addVoteWithUser(event.params.id, user._id);
 
 		return json({ success: true, message: 'Vote erfolgreich hinzugefügt' });
 	} catch (error) {
 		console.error('Vote error:', error);
-		return json({ error: error.message }, { status: 400 });
+		return json({ error: error.message }, { status: error.status || 400 });
 	}
 }

@@ -71,10 +71,13 @@ export async function login() {
 // Logout
 export async function logout() {
 	if (!clientInstance) return;
-	
+
 	currentUser.set(null);
 	isAuthenticated.set(false);
-	
+
+	// Clear user cookie
+	document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
 	try {
 		await clientInstance.logout({
 			logoutParams: {
@@ -155,6 +158,9 @@ async function syncUserWithBackend(auth0User) {
 			const user = await response.json();
 			console.log('✅ User synced:', user);
 			currentUser.set(user);
+
+			// Set user cookie for server-side auth
+			document.cookie = `user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict`;
 		} else {
 			const error = await response.text();
 			console.error('❌ Sync failed:', error);

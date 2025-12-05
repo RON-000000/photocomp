@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getCompetitionById, updateCompetition, deleteCompetition, checkAndUpdateCompetitionStatus } from '$lib/server/models.js';
+import { requireRole } from '$lib/server/auth.js';
+import { CompetitionUpdateSchema, validateOrThrow } from '$lib/server/validation.js';
 
 export async function GET({ params }) {
 	try {
@@ -17,56 +19,45 @@ export async function GET({ params }) {
 	}
 }
 
-export async function PUT({ params, request }) {
+export async function PUT(event) {
 	try {
-		// Check authentication
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
-			return json({ error: 'Nicht authentifiziert' }, { status: 401 });
-		}
+		// Require admin role
+		await requireRole(event, 'admin');
 
-		const updates = await request.json();
+		const updates = await event.request.json();
 
-		// Validate dates if provided
-		if (updates.startDate && updates.deadline) {
-			const startDate = new Date(updates.startDate);
-			const deadline = new Date(updates.deadline);
+		// Validate with Zod schema (partial update)
+		const validated = validateOrThrow(CompetitionUpdateSchema, updates);
+
+		// Additional date validation if both dates provided
+		if (validated.startDate && validated.deadline) {
+			const startDate = new Date(validated.startDate);
+			const deadline = new Date(validated.deadline);
 			if (startDate >= deadline) {
 				return json({ error: 'Deadline muss nach dem Startdatum liegen' }, { status: 400 });
 			}
 		}
 
-		// Validate voting weights if provided
-		if (updates.votingWeight) {
-			const totalWeight = (updates.votingWeight.community || 0) + (updates.votingWeight.jury || 0);
-			if (Math.abs(totalWeight - 1) > 0.01) {
-				return json({ error: 'Voting-Gewichte müssen zusammen 1.0 ergeben' }, { status: 400 });
-			}
-		}
-
-		await updateCompetition(params.id, updates);
-		const updatedCompetition = await getCompetitionById(params.id);
+		await updateCompetition(event.params.id, validated);
+		const updatedCompetition = await getCompetitionById(event.params.id);
 
 		return json(updatedCompetition);
 	} catch (error) {
 		console.error('Update competition error:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json({ error: error.message }, { status: error.status || 500 });
 	}
 }
 
-export async function DELETE({ params, request }) {
+export async function DELETE(event) {
 	try {
-		// Check authentication
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
-			return json({ error: 'Nicht authentifiziert' }, { status: 401 });
-		}
+		// Require admin role
+		await requireRole(event, 'admin');
 
-		await deleteCompetition(params.id);
+		await deleteCompetition(event.params.id);
 
 		return json({ success: true, message: 'Competition erfolgreich gelöscht' });
 	} catch (error) {
 		console.error('Delete competition error:', error);
-		return json({ error: error.message }, { status: 500 });
+		return json({ error: error.message }, { status: error.status || 500 });
 	}
 }

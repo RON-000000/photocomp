@@ -1,9 +1,21 @@
 import { json } from '@sveltejs/kit';
 import { getCollection } from '$lib/server/db.js';
+import { UserSyncSchema, validateOrThrow } from '$lib/server/validation.js';
+import { createRateLimiter, RateLimitPresets } from '$lib/server/rateLimit.js';
 
-export async function POST({ request }) {
+const rateLimiter = createRateLimiter(RateLimitPresets.STRICT);
+
+export async function POST(event) {
 	try {
-		const { auth0Id, email, name, avatar, username } = await request.json();
+		// Apply rate limiting
+		await rateLimiter(event);
+
+		const userData = await event.request.json();
+
+		// Validate with Zod schema
+		const validated = validateOrThrow(UserSyncSchema, userData);
+
+		const { auth0Id, email, name, avatar, username } = validated;
 		
 		const users = await getCollection('users');
 		

@@ -23,8 +23,10 @@
 		"dotenv": "^17.2.3",
 		"express": "^5.1.0",
 		"express-openid-connect": "^2.19.3",
+		"jose": "^5.10.0",
 		"lucide-svelte": "^0.554.0",
 		"mongodb": "^7.0.0",
-		"sharp": "^0.34.5"
+		"sharp": "^0.34.5",
+		"zod": "^3.22.4"
 	}
 }

@@ -106,18 +106,20 @@ export async function getSubmissionById(submissionId) {
 }
 
 export async function createSubmission(submissionData) {
+	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers,
 		body: JSON.stringify(submissionData)
 	});
 	return handleResponse(response);
 }
 
 export async function voteOnSubmission(submissionId, userId) {
+	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions/${submissionId}/vote`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers,
 		body: JSON.stringify({ userId })
 	});
 	return handleResponse(response);
@@ -133,18 +135,20 @@ export async function checkIfUserVoted(submissionId, userId) {
 }
 
 export async function addCommentToSubmission(submissionId, commentData) {
+	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions/${submissionId}/comments`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		headers,
 		body: JSON.stringify(commentData)
 	});
 	return handleResponse(response);
 }
 
 export async function deleteSubmission(submissionId, userId) {
+	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions/${submissionId}`, {
 		method: 'DELETE',
-		headers: { 'Content-Type': 'application/json' },
+		headers,
 		body: JSON.stringify({ userId })
 	});
 	return handleResponse(response);
