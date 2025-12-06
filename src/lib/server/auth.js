@@ -1,45 +1,66 @@
 import { error } from '@sveltejs/kit';
+import { getCollection } from './db.js';
 
 /**
- * Simple session-based auth for development
- * Uses user data from event.locals set by hooks
+ * Secure session-based auth
+ * Cookie is only used as a hint for auth0Id, actual user data (including role)
+ * is always loaded from database to prevent cookie manipulation attacks.
  */
 
 /**
- * Get user from event.locals (set by hooks or frontend)
+ * Get auth0Id from cookie or event.locals (for quick checks)
  * @param {object} event - SvelteKit event object
- * @returns {object|null} User object or null
+ * @returns {string|null} auth0Id or null
  */
-function getUserFromEvent(event) {
+function getAuth0IdFromEvent(event) {
 	// Check if user is in locals (set by hooks)
-	if (event.locals.user) {
-		return event.locals.user;
+	if (event.locals.user?.auth0Id) {
+		return event.locals.user.auth0Id;
 	}
-
-	// Fallback: Check cookies for user session
-	const userCookie = event.cookies.get('user');
-	if (userCookie) {
-		try {
-			return JSON.parse(userCookie);
-		} catch (err) {
-			console.error('Failed to parse user cookie:', err);
-		}
-	}
-
 	return null;
 }
 
 /**
+ * Load user from database by auth0Id
+ * This ensures we always have the verified role from the database
+ * @param {string} auth0Id - Auth0 user ID
+ * @returns {Promise<object|null>} User object or null
+ */
+async function getUserFromDatabase(auth0Id) {
+	if (!auth0Id) return null;
+
+	try {
+		const users = await getCollection('users');
+		const user = await users.findOne({ auth0Id });
+		return user;
+	} catch (err) {
+		console.error('Database lookup failed:', err);
+		return null;
+	}
+}
+
+/**
  * Require authentication - check if user is logged in
+ * IMPORTANT: Always loads user from DB to verify role (prevents cookie manipulation)
  * @param {object} event - SvelteKit event object
- * @returns {Promise<object>} User object
+ * @returns {Promise<object>} User object from database
  */
 export async function requireAuth(event) {
-	const user = getUserFromEvent(event);
+	const auth0Id = getAuth0IdFromEvent(event);
 
-	if (!user) {
+	if (!auth0Id) {
 		throw error(401, 'Anmeldung erforderlich');
 	}
+
+	// Always load from database to get verified role
+	const user = await getUserFromDatabase(auth0Id);
+
+	if (!user) {
+		throw error(401, 'Benutzer nicht gefunden');
+	}
+
+	// Update event.locals with verified user data
+	event.locals.user = user;
 
 	return user;
 }

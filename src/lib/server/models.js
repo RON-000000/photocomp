@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { getCollection } from './db.js';
 
 // Helper function to generate UUID
-function generateId() {
+export function generateId() {
 	return new ObjectId().toString();
 }
 

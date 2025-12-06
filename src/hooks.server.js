@@ -60,6 +60,17 @@ export async function handle({ event, resolve }) {
 	response.headers.set('X-XSS-Protection', '1; mode=block');
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
+	// Content Security Policy
+	response.headers.set('Content-Security-Policy', [
+		"default-src 'self'",
+		"img-src 'self' https://res.cloudinary.com https://*.pravatar.cc https://*.auth0.com https://images.unsplash.com data: blob:",
+		"script-src 'self' 'unsafe-inline' https://*.auth0.com",
+		"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+		"font-src 'self' https://fonts.gstatic.com",
+		"connect-src 'self' https://*.auth0.com https://api.cloudinary.com",
+		"frame-src https://*.auth0.com"
+	].join('; '));
+
 	return response;
 }
 

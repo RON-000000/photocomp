@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { getCollection } from '$lib/server/db.js';
+import { generateId } from '$lib/server/models.js';
 import { UserSyncSchema, validateOrThrow } from '$lib/server/validation.js';
 import { createRateLimiter, RateLimitPresets } from '$lib/server/rateLimit.js';
 
@@ -16,22 +17,22 @@ export async function POST(event) {
 		const validated = validateOrThrow(UserSyncSchema, userData);
 
 		const { auth0Id, email, name, avatar, username } = validated;
-		
+
 		const users = await getCollection('users');
-		
+
 		// Check if user exists
 		let user = await users.findOne({ auth0Id });
-		
+
 		if (!user) {
 			// Generate unique username
 			let uniqueUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
 			let counter = 1;
-			
+
 			while (await users.findOne({ username: uniqueUsername })) {
 				uniqueUsername = `${username}${counter}`;
 				counter++;
 			}
-			
+
 			// Create new user
 			const newUser = {
 				_id: generateId(),
@@ -51,7 +52,7 @@ export async function POST(event) {
 				},
 				createdAt: new Date().toISOString()
 			};
-			
+
 			await users.insertOne(newUser);
 			user = newUser;
 		} else {
@@ -67,17 +68,13 @@ export async function POST(event) {
 
 			user = await users.findOne({ auth0Id });
 		}
-		
+
 		// Remove sensitive data
 		const { password, ...safeUser } = user;
-		
+
 		return json(safeUser);
 	} catch (error) {
 		console.error('User sync error:', error);
 		return json({ error: error.message }, { status: 500 });
 	}
-}
-
-function generateId() {
-	return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
