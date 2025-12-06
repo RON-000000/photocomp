@@ -7,7 +7,7 @@
 		<div class="footer-content">
 			<!-- Brand Section -->
 			<div class="footer-section">
-				<h3 class="footer-brand">PhotoZürich</h3>
+				<h3 class="footer-brand">PhotoComp</h3>
 				<p class="footer-tagline">
 					Die Community-Plattform für Zürcher Fotografen
 				</p>

@@ -45,7 +45,7 @@
 		<nav class="nav">
 			<a href="/" class="logo">
 				<Camera size={24} />
-				<span>PhotoZürich</span>
+				<span>PhotoComp</span>
 			</a>
 
 			<div class="nav-links" class:open={mobileMenuOpen}>

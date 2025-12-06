@@ -19,14 +19,14 @@
 </script>
 
 <svelte:head>
-	<title>PhotoZürich - Community Platform für Zürcher Fotografen</title>
+	<title>PhotoComp - Community Platform für Zürcher Fotografen</title>
 </svelte:head>
 
 <!-- Hero Section -->
 <section class="hero">
 	<div class="container">
 		<div class="hero-content">
-			<h1>Willkommen bei PhotoZürich</h1>
+			<h1>Willkommen bei PhotoComp</h1>
 			<p class="hero-subtitle">
 				Die Community-Plattform für Zürcher Fotografen. Nimm an spannenden Wettbewerben teil, 
 				erhalte echtes Feedback und vernetze dich mit Gleichgesinnten.
