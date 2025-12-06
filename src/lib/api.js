@@ -208,12 +208,3 @@ export async function deleteUploadedImage(imageUrl) {
 	return handleResponse(response);
 }
 
-// ==================== SEED ====================
-
-export async function seedDatabase() {
-	const response = await fetch(`${API_BASE}/seed`, {
-		method: 'POST'
-	});
-	return handleResponse(response);
-}
-
