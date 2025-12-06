@@ -243,14 +243,6 @@
 			</button>
 
 			{#if canDelete}
-				<button
-					on:click={handleDelete}
-					class="delete-button"
-					disabled={deleting}
-				>
-					<Trash2 size={20} />
-					<span>{deleting ? "Löschen..." : "Beitrag löschen"}</span>
-				</button>
 				<a href="/submissions/{submissionId}/edit" class="edit-button">
 					<Edit3 size={20} />
 					<span>Beitrag bearbeiten</span>

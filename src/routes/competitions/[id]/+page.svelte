@@ -211,14 +211,6 @@
 							<Edit3 size={18} />
 							<span>Bearbeiten</span>
 						</button>
-						<button
-							on:click={handleDeleteCompetition}
-							class="admin-button delete-button"
-							disabled={deleting}
-						>
-							<Trash2 size={18} />
-							<span>{deleting ? "Löschen..." : "Löschen"}</span>
-						</button>
 					</div>
 				{/if}
 			</div>

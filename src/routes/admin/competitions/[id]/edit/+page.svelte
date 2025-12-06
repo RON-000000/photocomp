@@ -7,6 +7,7 @@
 		getCompetitionById,
 		updateCompetition,
 		uploadImage,
+		deleteCompetition,
 	} from "$lib/api.js";
 	import {
 		Trophy,
@@ -18,13 +19,14 @@
 		Upload,
 		Search,
 		Save,
-		ArrowLeft,
 	} from "lucide-svelte";
 	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
 	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
+	import DeleteButton from "$lib/components/DeleteButton.svelte";
 
 	let loading = true;
 	let saving = false;
+	let deleting = false;
 	let uploadingImage = false;
 	let competition = null;
 	let juryMembers = [];
@@ -298,90 +300,67 @@
 			goto(`/competitions/${competitionId}`);
 		}
 	}
+
+	async function handleDelete() {
+		if (
+			!confirm(
+				"Möchtest du diese Competition wirklich löschen? Alle zugehörigen Submissions werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+			)
+		) {
+			return;
+		}
+
+		deleting = true;
+
+		try {
+			await deleteCompetition(competitionId);
+			alert("Competition erfolgreich gelöscht! 🗑️");
+			goto("/competitions");
+		} catch (error) {
+			console.error("Error deleting competition:", error);
+			alert("Fehler beim Löschen: " + error.message);
+		} finally {
+			deleting = false;
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>Competition bearbeiten - PhotoZürich Admin</title>
 </svelte:head>
 
-<div class="admin-container">
-	<div class="page-header">
-		<button on:click={handleCancel} class="back-button">
-			<ArrowLeft size={20} />
-			<span>Zurück</span>
-		</button>
-		<div class="header-content">
-			<Trophy size={32} class="header-icon" />
-			<div>
-				<h1>Competition bearbeiten</h1>
-				<p class="subtitle">Passe die Details des Wettbewerbs an</p>
+<div class="create-page">
+	<div class="container">
+		{#if loading}
+			<div class="loading-state">
+				<div class="spinner"></div>
+				<p>Lade Competition-Daten...</p>
 			</div>
-		</div>
-	</div>
-
-	{#if loading}
-		<div class="loading-state">
-			<div class="spinner"></div>
-			<p>Lade Competition-Daten...</p>
-		</div>
-	{:else}
-		<form on:submit={handleSubmit} class="competition-form">
-			<!-- Hero Image -->
-			<div class="form-section">
-				<h2>Hero Bild</h2>
-				<div class="image-upload-section">
-					<input
-						type="file"
-						accept="image/jpeg,image/jpg,image/png,image/webp"
-						on:change={handleImageSelect}
-						bind:this={fileInput}
-						style="display: none;"
-					/>
-
-					{#if heroImagePreview}
-						<div class="image-preview">
-							<img src={heroImagePreview} alt="Hero Preview" />
-							{#if uploadingImage}
-								<div class="upload-overlay">
-									<div class="spinner"></div>
-									<p>Wird hochgeladen...</p>
-								</div>
-							{/if}
-						</div>
-					{/if}
-
-					<SecondaryButton
-						on:click={triggerFileInput}
-						disabled={uploadingImage}
-					>
-						{#if uploadingImage}
-							<span class="loading"></span>
-							Wird hochgeladen...
-						{:else if heroImagePreview}
-							<Plus size={16} />
-							<span>Bild ändern</span>
-						{:else}
-							<Plus size={16} />
-							<span>Bild hochladen</span>
-						{/if}
-					</SecondaryButton>
-
-					{#if uploadSuccess}
-						<p class="success">✅ Bild erfolgreich hochgeladen!</p>
-					{/if}
+		{:else}
+			<header class="page-header">
+				<div>
+					<h1>Wettbewerb bearbeiten</h1>
+					<p>Passe die Details des Wettbewerbs an</p>
 				</div>
-			</div>
+				<SecondaryButton on:click={handleCancel} disabled={saving}>
+					Abbrechen
+				</SecondaryButton>
+			</header>
+			<form class="competition-form" on:submit={handleSubmit}>
+				<!-- Basic Information -->
+				<section class="form-section">
+					<h2>Grundinformationen</h2>
 
-			<!-- Basic Info -->
-			<div class="form-section">
-				<h2>Grundlegende Informationen</h2>
-				<div class="form-grid">
 					<div class="form-group">
-						<label for="title">Titel *</label>
+						<label for="title">
+							<Trophy size={18} />
+							<span>Titel *</span>
+						</label>
 						<input
-							type="text"
 							id="title"
+							type="text"
 							bind:value={formData.title}
+							placeholder="z.B. Zürich bei Nacht"
 							class:error={errors.title}
 							required
 						/>
@@ -391,11 +370,15 @@
 					</div>
 
 					<div class="form-group">
-						<label for="theme">Thema *</label>
+						<label for="theme">
+							<Image size={18} />
+							<span>Thema *</span>
+						</label>
 						<input
-							type="text"
 							id="theme"
+							type="text"
 							bind:value={formData.theme}
+							placeholder="z.B. Urban Photography, Nachtaufnahmen"
 							class:error={errors.theme}
 							required
 						/>
@@ -404,12 +387,13 @@
 						{/if}
 					</div>
 
-					<div class="form-group full-width">
-						<label for="description">Beschreibung *</label>
+					<div class="form-group">
+						<label for="description"> Beschreibung * </label>
 						<textarea
 							id="description"
 							bind:value={formData.description}
-							rows="4"
+							placeholder="Beschreiben Sie den Wettbewerb..."
+							rows="5"
 							class:error={errors.description}
 							required
 						></textarea>
@@ -419,352 +403,420 @@
 							>
 						{/if}
 					</div>
-				</div>
-			</div>
-
-			<!-- Dates -->
-			<div class="form-section">
-				<h2>Zeitraum</h2>
-				<div class="form-grid">
-					<div class="form-group">
-						<label for="startDate">Startdatum *</label>
-						<input
-							type="date"
-							id="startDate"
-							bind:value={formData.startDate}
-							class:error={errors.startDate}
-							required
-						/>
-						{#if errors.startDate}
-							<span class="error-message">{errors.startDate}</span
-							>
-						{/if}
-					</div>
 
 					<div class="form-group">
-						<label for="deadline">Deadline *</label>
-						<input
-							type="date"
-							id="deadline"
-							bind:value={formData.deadline}
-							class:error={errors.deadline}
-							required
-						/>
-						{#if errors.deadline}
-							<span class="error-message">{errors.deadline}</span>
+						<label>
+							<Upload size={18} />
+							<span>Hero-Bild</span>
+						</label>
+
+						{#if heroImagePreview}
+							<div class="image-preview">
+								<img
+									src={heroImagePreview}
+									alt="Hero-Bild Vorschau"
+								/>
+								<div class="image-preview-actions">
+									{#if uploadingImage}
+										<div class="upload-status">
+											<span class="loading-small"></span>
+											<span>Wird hochgeladen...</span>
+										</div>
+									{:else if formData.imageUrl}
+										<span class="upload-success"
+											>✓ Erfolgreich hochgeladen</span
+										>
+									{/if}
+									<button
+										type="button"
+										class="btn btn-secondary btn-sm"
+										on:click={() => {
+											heroImageFile = null;
+											heroImagePreview = null;
+											formData.imageUrl = "";
+										}}
+										disabled={uploadingImage}
+									>
+										<X size={16} />
+										<span>Entfernen</span>
+									</button>
+								</div>
+							</div>
+						{:else}
+							<label class="image-upload-area">
+								<input
+									type="file"
+									accept="image/jpeg,image/jpg,image/png,image/webp"
+									on:change={handleImageSelect}
+									bind:this={fileInput}
+									style="display: none;"
+								/>
+								<div class="upload-placeholder">
+									<Upload size={32} />
+									<p>
+										Klicken Sie hier, um ein Bild
+										auszuwählen
+									</p>
+									<span class="help-text"
+										>JPEG, PNG oder WebP (max 100MB)</span
+									>
+									<span class="help-text"
+										>Bild wird komprimiert und hochgeladen</span
+									>
+								</div>
+							</label>
 						{/if}
+
+						{#if formData.imageUrl}
+							<div class="image-url-display">
+								<span class="help-text"
+									>Cloudinary URL: {formData.imageUrl.substring(
+										0,
+										50,
+									)}...</span
+								>
+							</div>
+						{/if}
+
+						<span class="help-text"
+							>Optionales Titelbild für den Wettbewerb</span
+						>
 					</div>
-				</div>
-			</div>
+				</section>
 
-			<!-- Status -->
-			<div class="form-section">
-				<h2>Status</h2>
-				<div class="form-group">
-					<label for="status">Competition Status</label>
-					<select id="status" bind:value={formData.status}>
-						<option value="active">Aktiv</option>
-						<option value="voting">Voting</option>
-						<option value="completed">Beendet</option>
-					</select>
-				</div>
-			</div>
+				<!-- Dates -->
+				<section class="form-section">
+					<h2>Termine</h2>
 
-			<!-- Prizes -->
-			<div class="form-section">
-				<h2>Preise</h2>
-				<div class="dynamic-list">
+					<div class="form-row">
+						<div class="form-group">
+							<label for="startDate">
+								<Calendar size={18} />
+								<span>Startdatum *</span>
+							</label>
+							<input
+								id="startDate"
+								type="date"
+								bind:value={formData.startDate}
+								class:error={errors.startDate}
+								required
+							/>
+							{#if errors.startDate}
+								<span class="error-message"
+									>{errors.startDate}</span
+								>
+							{/if}
+						</div>
+
+						<div class="form-group">
+							<label for="deadline">
+								<Calendar size={18} />
+								<span>Deadline *</span>
+							</label>
+							<input
+								id="deadline"
+								type="date"
+								bind:value={formData.deadline}
+								class:error={errors.deadline}
+								required
+							/>
+							{#if errors.deadline}
+								<span class="error-message"
+									>{errors.deadline}</span
+								>
+							{/if}
+						</div>
+					</div>
+				</section>
+
+				<!-- Status (edit page only) -->
+				<section class="form-section">
+					<h2>Status</h2>
+					<div class="form-group">
+						<label for="status">Competition Status</label>
+						<select id="status" bind:value={formData.status}>
+							<option value="active">Aktiv</option>
+							<option value="voting">Voting</option>
+							<option value="completed">Beendet</option>
+						</select>
+					</div>
+				</section>
+
+				<!-- Prizes -->
+				<section class="form-section">
+					<h2>Preise</h2>
+
 					{#each formData.prizes as prize, index}
-						<div class="list-item">
+						<div class="form-group-with-remove">
 							<input
 								type="text"
 								bind:value={formData.prizes[index]}
-								placeholder={`Preis ${index + 1}`}
+								placeholder="z.B. 1. Platz: CHF 500"
 							/>
-							<button
-								type="button"
-								on:click={() => removePrize(index)}
-								class="remove-button"
-							>
-								<X size={16} />
-							</button>
+							{#if formData.prizes.length > 1}
+								<button
+									type="button"
+									class="btn-remove"
+									on:click={() => removePrize(index)}
+									aria-label="Preis entfernen"
+								>
+									<X size={18} />
+								</button>
+							{/if}
 						</div>
 					{/each}
+
 					<SecondaryButton on:click={addPrize}>
-						<Plus size={16} />
+						<Plus size={18} />
 						<span>Preis hinzufügen</span>
 					</SecondaryButton>
-				</div>
-			</div>
+				</section>
 
-			<!-- Rules -->
-			<div class="form-section">
-				<h2>Regeln</h2>
-				<div class="dynamic-list">
+				<!-- Rules -->
+				<section class="form-section">
+					<h2>Regeln</h2>
+
 					{#each formData.rules as rule, index}
-						<div class="list-item">
+						<div class="form-group-with-remove">
 							<input
 								type="text"
 								bind:value={formData.rules[index]}
-								placeholder={`Regel ${index + 1}`}
+								placeholder="z.B. Nur Original-Fotos erlaubt"
 							/>
-							<button
-								type="button"
-								on:click={() => removeRule(index)}
-								class="remove-button"
-							>
-								<X size={16} />
-							</button>
+							{#if formData.rules.length > 1}
+								<button
+									type="button"
+									class="btn-remove"
+									on:click={() => removeRule(index)}
+									aria-label="Regel entfernen"
+								>
+									<X size={18} />
+								</button>
+							{/if}
 						</div>
 					{/each}
+
 					<SecondaryButton on:click={addRule}>
-						<Plus size={16} />
+						<Plus size={18} />
 						<span>Regel hinzufügen</span>
 					</SecondaryButton>
-				</div>
-			</div>
+				</section>
 
-			<!-- Jury Members -->
-			<div class="form-section">
-				<h2>Jury-Mitglieder</h2>
-				<div class="jury-search">
-					<Search size={16} />
-					<input
-						type="text"
-						bind:value={jurySearchQuery}
-						placeholder="Nach Name, Username oder Email suchen..."
-					/>
-					{#if jurySearchQuery}
-						<button
-							type="button"
-							on:click={() => (jurySearchQuery = "")}
-							class="clear-search"
-						>
-							<X size={16} />
-						</button>
-					{/if}
-				</div>
-				<div class="selected-count">
-					{formData.juryMembers.length} ausgewählt
-				</div>
+				<!-- Jury Selection -->
+				<section class="form-section">
+					<h2>Jury-Mitglieder</h2>
+					<p class="section-description">
+						Wählen Sie Benutzer aus, die als Jury fungieren sollen
+					</p>
 
-				{#if filteredJuryMembers.length === 0}
-					<div class="no-results">
-						<p>Keine Jury-Mitglieder gefunden</p>
-					</div>
-				{:else}
-					<div class="jury-table-wrapper">
-						<table class="jury-table">
-							<thead>
-								<tr>
-									<th style="width: 50px;">
+					{#if juryMembers.length > 0}
+						<!-- Jury Search -->
+						<div class="jury-search-box">
+							<Search size={20} />
+							<input
+								type="text"
+								placeholder="Jury-Mitglieder durchsuchen..."
+								bind:value={jurySearchQuery}
+								class="jury-search-input"
+							/>
+							{#if jurySearchQuery}
+								<button
+									type="button"
+									class="clear-jury-search"
+									on:click={() => (jurySearchQuery = "")}
+									aria-label="Suche löschen"
+								>
+									×
+								</button>
+							{/if}
+						</div>
+
+						<!-- Selected count -->
+						{#if formData.juryMembers.length > 0}
+							<div class="jury-selected-count">
+								{formData.juryMembers.length} Jury-Mitglied{formData
+									.juryMembers.length !== 1
+									? "er"
+									: ""} ausgewählt
+							</div>
+						{/if}
+
+						<!-- Jury Grid -->
+						{#if filteredJuryMembers.length === 0}
+							<div class="no-results">
+								<p>
+									Keine Jury-Mitglieder gefunden für "{jurySearchQuery}"
+								</p>
+							</div>
+						{:else}
+							<div class="jury-grid">
+								{#each filteredJuryMembers as user}
+									<label class="jury-checkbox">
 										<input
 											type="checkbox"
-											checked={filteredJuryMembers.every(
-												(m) =>
-													formData.juryMembers.includes(
-														m.username,
-													),
+											checked={formData.juryMembers.includes(
+												user.username,
 											)}
-											on:change={(e) => {
-												if (e.target.checked) {
-													filteredJuryMembers.forEach(
-														(m) => {
-															if (
-																!formData.juryMembers.includes(
-																	m.username,
-																)
-															) {
-																toggleJuryMember(
-																	m.username,
-																);
-															}
-														},
-													);
-												} else {
-													filteredJuryMembers.forEach(
-														(m) => {
-															if (
-																formData.juryMembers.includes(
-																	m.username,
-																)
-															) {
-																toggleJuryMember(
-																	m.username,
-																);
-															}
-														},
-													);
-												}
-											}}
+											on:change={() =>
+												toggleJuryMember(user.username)}
 										/>
-									</th>
-									<th>Benutzer</th>
-									<th>Email</th>
-									<th>Rolle</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each filteredJuryMembers as member}
-									<tr>
-										<td>
-											<input
-												type="checkbox"
-												checked={formData.juryMembers.includes(
-													member.username,
-												)}
-												on:change={() =>
-													toggleJuryMember(
-														member.username,
-													)}
+										<div class="jury-user">
+											<img
+												src={user.avatar}
+												alt={user.name}
+												class="jury-avatar"
 											/>
-										</td>
-										<td>
-											<div class="user-cell">
-												<img
-													src={member.avatar}
-													alt={member.name}
-													class="user-avatar"
-												/>
-												<div>
-													<div class="user-name">
-														{member.name ||
-															member.username}
-													</div>
-													<div class="user-username">
-														@{member.username}
-													</div>
+											<div class="jury-info">
+												<div class="jury-name">
+													{user.name}
+												</div>
+												<div class="jury-username">
+													@{user.username}
 												</div>
 											</div>
-										</td>
-										<td class="email-cell"
-											>{member.email}</td
-										>
-										<td>
 											<span
-												class="role-badge role-{member.role ||
-													'jury'}"
+												class="role-badge role-{user.role}"
 											>
-												{member.role || "jury"}
+												{user.role}
 											</span>
-										</td>
-									</tr>
+										</div>
+									</label>
 								{/each}
-							</tbody>
-						</table>
-					</div>
-				{/if}
-			</div>
+							</div>
+						{/if}
+					{:else}
+						<p class="no-jury-message">
+							Keine Jury-Mitglieder verfügbar. Weisen Sie
+							Benutzern die Rolle "Jury" oder "Admin" zu.
+						</p>
+					{/if}
+				</section>
 
-			<!-- Voting Weights -->
-			<div class="form-section">
-				<h2>Voting-Gewichtung</h2>
-				<div class="voting-weights">
-					<div class="weight-input">
-						<label for="communityWeight">Community Gewicht</label>
-						<input
-							type="number"
-							id="communityWeight"
-							bind:value={formData.votingWeight.community}
-							min="0"
-							max="1"
-							step="0.1"
-							class:error={errors.votingWeight}
-						/>
-						<span class="weight-percentage"
-							>{(formData.votingWeight.community * 100).toFixed(
-								0,
-							)}%</span
-						>
-					</div>
-					<div class="weight-input">
-						<label for="juryWeight">Jury Gewicht</label>
-						<input
-							type="number"
-							id="juryWeight"
-							bind:value={formData.votingWeight.jury}
-							min="0"
-							max="1"
-							step="0.1"
-							class:error={errors.votingWeight}
-						/>
-						<span class="weight-percentage"
-							>{(formData.votingWeight.jury * 100).toFixed(
-								0,
-							)}%</span
-						>
-					</div>
-				</div>
-				{#if errors.votingWeight}
-					<span class="error-message">{errors.votingWeight}</span>
-				{/if}
-			</div>
+				<!-- Voting Weight -->
+				<section class="form-section">
+					<h2>Voting-Gewichtung</h2>
+					<p class="section-description">
+						Wie sollen Community- und Jury-Votes gewichtet werden?
+					</p>
 
-			<!-- Form Actions -->
-			<div class="form-actions">
-				<SecondaryButton type="button" on:click={handleCancel}>
-					Abbrechen
-				</SecondaryButton>
-				<PrimaryButton type="submit" disabled={saving}>
-					<Save size={20} />
-					<span
-						>{saving
-							? "Wird gespeichert..."
-							: "Änderungen speichern"}</span
+					<div class="voting-weights">
+						<div class="form-group">
+							<label for="communityWeight">
+								<Users size={18} />
+								<span>Community-Gewicht</span>
+							</label>
+							<input
+								id="communityWeight"
+								type="number"
+								min="0"
+								max="1"
+								step="0.1"
+								bind:value={formData.votingWeight.community}
+								class:error={errors.votingWeight}
+							/>
+							<span class="weight-percentage"
+								>{(
+									formData.votingWeight.community * 100
+								).toFixed(0)}%</span
+							>
+						</div>
+
+						<div class="form-group">
+							<label for="juryWeight">
+								<Trophy size={18} />
+								<span>Jury-Gewicht</span>
+							</label>
+							<input
+								id="juryWeight"
+								type="number"
+								min="0"
+								max="1"
+								step="0.1"
+								bind:value={formData.votingWeight.jury}
+								class:error={errors.votingWeight}
+							/>
+							<span class="weight-percentage"
+								>{(formData.votingWeight.jury * 100).toFixed(
+									0,
+								)}%</span
+							>
+						</div>
+					</div>
+
+					{#if errors.votingWeight}
+						<span class="error-message">{errors.votingWeight}</span>
+					{/if}
+
+					<div class="weight-total" class:error={errors.votingWeight}>
+						Gesamt: {(
+							(formData.votingWeight.community +
+								formData.votingWeight.jury) *
+							100
+						).toFixed(0)}%
+						{#if Math.abs(formData.votingWeight.community + formData.votingWeight.jury - 1) < 0.01}
+							✓
+						{:else}
+							(muss 100% ergeben)
+						{/if}
+					</div>
+				</section>
+
+				<!-- Submit -->
+				<div class="form-actions">
+					<DeleteButton
+						label="Wettbewerb löschen"
+						loadingLabel="Löschen..."
+						loading={deleting}
+						disabled={saving}
+						on:click={handleDelete}
+					/>
+					<div class="spacer"></div>
+					<SecondaryButton
+						type="button"
+						on:click={handleCancel}
+						disabled={saving}
 					>
-				</PrimaryButton>
-			</div>
-		</form>
-	{/if}
+						Abbrechen
+					</SecondaryButton>
+					<PrimaryButton type="submit" disabled={saving}>
+						{#if saving}
+							<span class="loading"></span>
+							<span>Wird gespeichert...</span>
+						{:else}
+							<Trophy size={20} />
+							<span>Änderungen speichern</span>
+						{/if}
+					</PrimaryButton>
+				</div>
+			</form>
+		{/if}
+	</div>
 </div>
 
 <style>
-	.admin-container {
-		max-width: 1000px;
-		margin: 0 auto;
-		padding: var(--spacing-2xl) var(--spacing-xl);
+	.create-page {
+		min-height: calc(100vh - 60px);
+		background: var(--color-surface);
+		padding: var(--spacing-2xl) 0;
 	}
 
 	.page-header {
-		margin-bottom: var(--spacing-2xl);
-	}
-
-	.back-button {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		padding: var(--spacing-sm) var(--spacing-md);
-		margin-bottom: var(--spacing-md);
-		color: var(--color-text-secondary);
-		background: white;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.back-button:hover {
-		color: var(--color-primary);
-		border-color: var(--color-primary);
-	}
-
-	.header-content {
 		display: flex;
-		align-items: center;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: var(--spacing-2xl);
 		gap: var(--spacing-lg);
 	}
 
-	.header-content h1 {
-		margin: 0;
+	.page-header h1 {
 		font-size: 2rem;
 		font-weight: 700;
-		color: var(--color-text-primary);
+		margin: 0 0 var(--spacing-sm) 0;
 	}
 
-	.subtitle {
-		margin: var(--spacing-xs) 0 0 0;
-		color: var(--color-text-muted);
+	.page-header p {
+		color: var(--color-text-secondary);
+		margin: 0;
 	}
 
 	.loading-state {
@@ -785,345 +837,477 @@
 		animation: spin 1s linear infinite;
 	}
 
+	/* Form */
+	.competition-form {
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-2xl);
+		max-width: 800px;
+	}
+
+	.form-section {
+		margin-bottom: var(--spacing-2xl);
+		padding-bottom: var(--spacing-2xl);
+		border-bottom: 1px solid var(--color-border);
+	}
+
+	.form-section:last-of-type {
+		border-bottom: none;
+		margin-bottom: var(--spacing-xl);
+	}
+
+	.form-section h2 {
+		font-size: 1.25rem;
+		font-weight: 600;
+		margin: 0 0 var(--spacing-md) 0;
+	}
+
+	.section-description {
+		color: var(--color-text-secondary);
+		font-size: 0.875rem;
+		margin: 0 0 var(--spacing-lg) 0;
+	}
+
+	/* Form Groups */
+	.form-group {
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.form-group label {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		font-weight: 500;
+		margin-bottom: var(--spacing-sm);
+		color: var(--color-text-primary);
+	}
+
+	.form-group label :global(svg) {
+		color: var(--color-text-secondary);
+	}
+
+	.form-group input[type="text"],
+	.form-group input[type="url"],
+	.form-group input[type="date"],
+	.form-group input[type="number"],
+	.form-group select,
+	.form-group textarea {
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		transition: border-color 0.2s;
+		font-family: inherit;
+	}
+
+	.form-group input:focus,
+	.form-group select:focus,
+	.form-group textarea:focus {
+		outline: none;
+		border-color: var(--color-accent);
+	}
+
+	.form-group input.error,
+	.form-group textarea.error {
+		border-color: var(--color-danger);
+	}
+
+	.form-group textarea {
+		resize: vertical;
+	}
+
+	.form-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--spacing-lg);
+	}
+
+	.help-text {
+		display: block;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		margin-top: var(--spacing-xs);
+	}
+
+	.error-message {
+		display: block;
+		color: var(--color-danger);
+		font-size: 0.75rem;
+		margin-top: var(--spacing-xs);
+	}
+
+	/* Dynamic Fields */
+	.form-group-with-remove {
+		display: flex;
+		gap: var(--spacing-sm);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.form-group-with-remove input {
+		flex: 1;
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+	}
+
+	.btn-remove {
+		background: none;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm);
+		cursor: pointer;
+		color: var(--color-danger);
+		transition: all 0.2s;
+	}
+
+	.btn-remove:hover {
+		background: var(--color-danger);
+		color: white;
+		border-color: var(--color-danger);
+	}
+
+	.btn-sm {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		font-size: 0.875rem;
+	}
+
+	/* Image Upload */
+	.image-upload-area {
+		display: block;
+		cursor: pointer;
+	}
+
+	.upload-placeholder {
+		border: 2px dashed var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-2xl);
+		text-align: center;
+		transition: all 0.2s;
+		background: var(--color-surface);
+	}
+
+	.upload-placeholder:hover {
+		border-color: var(--color-accent);
+		background: rgba(59, 130, 246, 0.05);
+	}
+
+	.upload-placeholder :global(svg) {
+		color: var(--color-text-secondary);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.upload-placeholder p {
+		margin: 0 0 var(--spacing-xs) 0;
+		font-weight: 500;
+	}
+
+	.image-preview {
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.image-preview img {
+		width: 100%;
+		height: 300px;
+		object-fit: cover;
+		display: block;
+	}
+
+	.image-preview-actions {
+		padding: var(--spacing-md);
+		display: flex;
+		gap: var(--spacing-sm);
+		align-items: center;
+		background: var(--color-surface);
+	}
+
+	.upload-success {
+		color: var(--color-success);
+		font-weight: 500;
+		font-size: 0.875rem;
+	}
+
+	.upload-status {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		color: var(--color-text-secondary);
+		font-size: 0.875rem;
+	}
+
+	.loading-small {
+		display: inline-block;
+		width: 12px;
+		height: 12px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top-color: white;
+		border-radius: 50%;
+		animation: spin 0.6s linear infinite;
+	}
+
+	.image-url-display {
+		margin-top: var(--spacing-xs);
+		padding: var(--spacing-sm);
+		background: var(--color-surface);
+		border-radius: var(--radius-sm);
+		font-size: 0.75rem;
+		word-break: break-all;
+	}
+
+	/* Jury Selection */
+	.jury-search-box {
+		position: relative;
+		display: flex;
+		align-items: center;
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-sm) var(--spacing-md);
+		gap: var(--spacing-sm);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.jury-search-box :global(svg) {
+		color: var(--color-text-secondary);
+		flex-shrink: 0;
+	}
+
+	.jury-search-input {
+		flex: 1;
+		border: none;
+		outline: none;
+		font-size: 0.875rem;
+		background: transparent;
+	}
+
+	.jury-search-input::placeholder {
+		color: var(--color-text-secondary);
+	}
+
+	.clear-jury-search {
+		background: none;
+		border: none;
+		color: var(--color-text-secondary);
+		font-size: 1.5rem;
+		cursor: pointer;
+		padding: 0;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		transition: all 0.2s;
+	}
+
+	.clear-jury-search:hover {
+		background: var(--color-surface);
+		color: var(--color-text-primary);
+	}
+
+	.jury-selected-count {
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: rgba(59, 130, 246, 0.1);
+		border: 1px solid rgba(59, 130, 246, 0.2);
+		border-radius: var(--radius-sm);
+		color: var(--color-accent);
+		font-size: 0.875rem;
+		font-weight: 500;
+		margin-bottom: var(--spacing-lg);
+		text-align: center;
+	}
+
+	.jury-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: var(--spacing-md);
+	}
+
+	.jury-checkbox {
+		display: block;
+		cursor: pointer;
+	}
+
+	.jury-checkbox input[type="checkbox"] {
+		display: none;
+	}
+
+	.jury-user {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-md);
+		border: 2px solid var(--color-border);
+		border-radius: var(--radius-md);
+		transition: all 0.2s;
+	}
+
+	.jury-checkbox input:checked + .jury-user {
+		border-color: var(--color-accent);
+		background: rgba(59, 130, 246, 0.05);
+	}
+
+	.jury-checkbox:hover .jury-user {
+		border-color: var(--color-accent);
+	}
+
+	.jury-avatar {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		object-fit: cover;
+		flex-shrink: 0;
+	}
+
+	.jury-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.jury-name {
+		font-weight: 500;
+		font-size: 0.875rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.jury-username {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.role-badge {
+		margin-left: auto;
+		display: inline-block;
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border-radius: var(--radius-sm);
+		font-size: 0.625rem;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.role-jury {
+		background: #fef3c7;
+		color: #92400e;
+	}
+
+	.role-admin {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.no-jury-message {
+		color: var(--color-text-secondary);
+		text-align: center;
+		padding: var(--spacing-xl);
+		background: var(--color-surface);
+		border-radius: var(--radius-md);
+		margin: 0;
+	}
+
+	.no-results {
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-xl);
+		text-align: center;
+	}
+
+	.no-results p {
+		color: var(--color-text-secondary);
+		margin: 0;
+	}
+
+	/* Voting Weights */
+	.voting-weights {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--spacing-lg);
+	}
+
+	.weight-percentage {
+		display: block;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		margin-top: var(--spacing-xs);
+	}
+
+	.weight-total {
+		margin-top: var(--spacing-md);
+		padding: var(--spacing-md);
+		background: var(--color-surface);
+		border-radius: var(--radius-md);
+		text-align: center;
+		font-weight: 500;
+	}
+
+	.weight-total.error {
+		background: #fee2e2;
+		color: var(--color-danger);
+	}
+
+	/* Form Actions */
+	.form-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		padding-top: var(--spacing-lg);
+	}
+
+	.spacer {
+		flex: 1;
+	}
+
+	/* Animations */
 	@keyframes spin {
 		to {
 			transform: rotate(360deg);
 		}
 	}
 
-	.competition-form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-2xl);
-	}
-
-	.form-section {
-		background: white;
-		padding: var(--spacing-xl);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--color-border);
-	}
-
-	.form-section h2 {
-		margin: 0 0 var(--spacing-lg) 0;
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: var(--color-text-primary);
-	}
-
-	.form-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--spacing-lg);
-	}
-
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xs);
-	}
-
-	.form-group.full-width {
-		grid-column: 1 / -1;
-	}
-
-	.form-group label {
-		font-weight: 600;
-		color: var(--color-text-primary);
-		font-size: 0.875rem;
-	}
-
-	.form-group input,
-	.form-group textarea,
-	.form-group select {
-		padding: var(--spacing-sm) var(--spacing-md);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		font-family: inherit;
-		font-size: 1rem;
-		transition: border-color 0.2s ease;
-	}
-
-	.form-group input:focus,
-	.form-group textarea:focus,
-	.form-group select:focus {
-		outline: none;
-		border-color: var(--color-primary);
-	}
-
-	.form-group input.error,
-	.form-group textarea.error {
-		border-color: var(--color-error);
-	}
-
-	.error-message {
-		color: var(--color-error);
-		font-size: 0.875rem;
-	}
-
-	.image-upload-section {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-	}
-
-	.image-preview {
-		position: relative;
-		width: 100%;
-		max-height: 300px;
-		border-radius: var(--radius-md);
-		overflow: hidden;
-	}
-
-	.image-preview img {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.upload-overlay {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.7);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: var(--spacing-sm);
-		color: white;
-	}
-
-	.success {
-		color: var(--color-success);
-		font-size: 0.875rem;
-		font-weight: 600;
-		margin-top: var(--spacing-sm);
-	}
-
-	.dynamic-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-sm);
-	}
-
-	.list-item {
-		display: flex;
-		gap: var(--spacing-sm);
-	}
-
-	.list-item input,
-	.list-item textarea {
-		flex: 1;
-		padding: var(--spacing-sm) var(--spacing-md);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		font-family: inherit;
-	}
-
-	.remove-button {
-		all: unset;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 36px;
-		height: 36px;
-		background: var(--color-error);
-		color: white;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		flex-shrink: 0;
-	}
-
-	.remove-button:hover {
-		background: #c53030;
-	}
-
-	.jury-search {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		padding: var(--spacing-sm) var(--spacing-md);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		margin-bottom: var(--spacing-md);
-	}
-
-	.jury-search input {
-		flex: 1;
-		border: none;
-		outline: none;
-		font-family: inherit;
-	}
-
-	.clear-search {
-		all: unset;
-		display: flex;
-		cursor: pointer;
-		color: var(--color-text-muted);
-	}
-
-	.selected-count {
-		font-size: 0.875rem;
-		color: var(--color-text-muted);
-		margin-bottom: var(--spacing-sm);
-	}
-
-	.jury-table-wrapper {
-		overflow-x: auto;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		max-height: 500px;
-		overflow-y: auto;
-	}
-
-	.jury-table {
-		width: 100%;
-		border-collapse: collapse;
-		font-size: 0.875rem;
-	}
-
-	.jury-table thead {
-		background: var(--color-surface);
-		position: sticky;
-		top: 0;
-		z-index: 10;
-	}
-
-	.jury-table th {
-		text-align: left;
-		padding: var(--spacing-md);
-		font-weight: 600;
-		color: var(--color-text-primary);
-		border-bottom: 2px solid var(--color-border);
-	}
-
-	.jury-table td {
-		padding: var(--spacing-md);
-		border-bottom: 1px solid var(--color-border);
-	}
-
-	.jury-table tbody tr {
-		transition: background-color 0.2s ease;
-	}
-
-	.jury-table tbody tr:hover {
-		background: var(--color-surface);
-	}
-
-	.jury-table tbody tr:last-child td {
-		border-bottom: none;
-	}
-
-	.user-cell {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-	}
-
-	.user-avatar {
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-		object-fit: cover;
-	}
-
-	.user-name {
-		font-weight: 600;
-		color: var(--color-text-primary);
-		font-size: 0.875rem;
-	}
-
-	.user-username {
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-	}
-
-	.email-cell {
-		color: var(--color-text-secondary);
-	}
-
-	.role-badge {
-		display: inline-block;
-		padding: 0.25rem 0.625rem;
-		border-radius: var(--radius-sm);
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-	}
-
-	.role-badge.role-admin {
-		background: #fed7d7;
-		color: #9b2c2c;
-	}
-
-	.role-badge.role-jury {
-		background: #bee3f8;
-		color: #2c5282;
-	}
-
-	.role-badge.role-user {
-		background: #e2e8f0;
-		color: #4a5568;
-	}
-
-	.no-results {
-		text-align: center;
-		padding: var(--spacing-lg);
-		color: var(--color-text-muted);
-	}
-
-	.voting-weights {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: var(--spacing-lg);
-	}
-
-	.weight-input {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xs);
-	}
-
-	.weight-input label {
-		font-weight: 600;
-		font-size: 0.875rem;
-		color: var(--color-text-primary);
-	}
-
-	.weight-input input {
-		padding: var(--spacing-sm) var(--spacing-md);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-	}
-
-	.weight-percentage {
-		font-size: 0.875rem;
-		color: var(--color-text-muted);
-	}
-
-	.form-actions {
-		display: flex;
-		gap: var(--spacing-md);
-		justify-content: flex-end;
-		padding-top: var(--spacing-xl);
-		border-top: 1px solid var(--color-border);
-	}
-
+	/* Mobile */
 	@media (max-width: 768px) {
-		.form-grid {
-			grid-template-columns: 1fr;
+		.page-header {
+			flex-direction: column;
+			align-items: flex-start;
 		}
 
+		.competition-form {
+			padding: var(--spacing-lg);
+		}
+
+		.form-row,
 		.voting-weights {
 			grid-template-columns: 1fr;
 		}
 
+		.jury-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.image-preview-actions {
+			flex-direction: column;
+		}
+
+		.image-preview-actions button {
+			width: 100%;
+		}
+
 		.form-actions {
 			flex-direction: column;
+		}
+
+		.form-actions button {
+			width: 100%;
 		}
 	}
 </style>

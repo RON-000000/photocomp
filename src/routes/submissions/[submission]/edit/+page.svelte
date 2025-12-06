@@ -3,23 +3,36 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { currentUser } from "$lib/stores/auth0";
-    import { getSubmissionById, updateSubmission } from "$lib/api.js";
+    import {
+        getSubmissionById,
+        updateSubmission,
+        deleteSubmission,
+        getCompetitionById,
+    } from "$lib/api.js";
     import SecondaryButton from "$lib/components/SecondaryButton.svelte";
     import PrimaryButton from "$lib/components/PrimaryButton.svelte";
-    import BackButton from "$lib/components/BackButton.svelte";
-    import { Edit3, Save } from "lucide-svelte";
+    import DeleteButton from "$lib/components/DeleteButton.svelte";
 
     let submission = null;
+    let competition = null;
     let title = "";
     let description = "";
     let camera = "";
     let lens = "";
     let settings = "";
     let isSubmitting = false;
+    let deleting = false;
     let loading = true;
     let error = null;
 
     $: submissionId = $page.params.submission;
+    $: canDelete =
+        submission &&
+        $currentUser &&
+        competition &&
+        (submission.userId === $currentUser._id ||
+            submission.userId === $currentUser.sub) &&
+        new Date(competition.deadline) > new Date();
 
     onMount(async () => {
         try {
@@ -27,10 +40,16 @@
             submission = await getSubmissionById(submissionId);
 
             if (submission) {
-                // Check ownership
-                // Note: Ideally backend also checks, but good for UX.
-                // The page might assume user is already checked in parent layout or component,
-                // but here we wait for currentUser store if it's not ready yet.
+                // Load competition to check deadline for delete permission
+                if (submission.competitionId) {
+                    try {
+                        competition = await getCompetitionById(
+                            submission.competitionId,
+                        );
+                    } catch (err) {
+                        console.error("Error loading competition:", err);
+                    }
+                }
             } else {
                 error = "Submission nicht gefunden";
             }
@@ -93,6 +112,34 @@
     function goBack() {
         goto(`/submissions/${submissionId}`);
     }
+
+    async function handleDelete() {
+        if (!$currentUser) {
+            alert("Bitte logge dich ein!");
+            return;
+        }
+
+        if (
+            !confirm(
+                "Möchtest du diese Submission wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+            )
+        ) {
+            return;
+        }
+
+        deleting = true;
+
+        try {
+            await deleteSubmission(submissionId, $currentUser._id);
+            alert("Submission erfolgreich gelöscht! 🗑️");
+            goto(`/competitions/${submission.competitionId}`);
+        } catch (err) {
+            console.error("Error deleting submission:", err);
+            alert("Fehler beim Löschen: " + err.message);
+        } finally {
+            deleting = false;
+        }
+    }
 </script>
 
 <svelte:head>
@@ -116,17 +163,9 @@
             </div>
         {:else if submission}
             <div class="page-header">
-                <div class="back-nav">
-                    <BackButton on:click={goBack} />
-                </div>
-                <div class="header-content">
-                    <Edit3 size={32} class="header-icon" />
-                    <div>
-                        <h1>Beitrag bearbeiten</h1>
-                        <p class="subtitle">
-                            Passe Titel, Beschreibung oder Kamera-Infos an.
-                        </p>
-                    </div>
+                <div>
+                    <h1>Beitrag bearbeiten</h1>
+                    <p>Passe Titel, Beschreibung oder Kamera-Infos an.</p>
                 </div>
             </div>
 
@@ -135,21 +174,26 @@
                 on:submit|preventDefault={handleSubmit}
             >
                 <!-- Image Preview (Read-Only) -->
-                <div class="form-section">
+                <section class="form-section">
                     <h2>Bild</h2>
-                    <div class="image-preview">
-                        <img src={submission.imageUrl} alt={submission.title} />
-                        <p class="help-text">
+                    <div class="form-group">
+                        <div class="image-preview">
+                            <img
+                                src={submission.imageUrl}
+                                alt={submission.title}
+                            />
+                        </div>
+                        <span class="help-text">
                             Das Bild kann nicht nachträglich geändert werden.
-                        </p>
+                        </span>
                     </div>
-                </div>
+                </section>
 
                 <!-- Basic Information -->
-                <div class="form-section">
+                <section class="form-section">
                     <h2>Informationen</h2>
 
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label for="title">Titel *</label>
                         <input
                             type="text"
@@ -161,7 +205,7 @@
                         />
                     </div>
 
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label for="description">Beschreibung *</label>
                         <textarea
                             id="description"
@@ -171,56 +215,64 @@
                             required
                         ></textarea>
                     </div>
-                </div>
+                </section>
 
                 <!-- Technical Details -->
-                <div class="form-section">
+                <section class="form-section">
                     <h2>Technische Details (Optional)</h2>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="camera">Kamera</label>
-                            <input
-                                type="text"
-                                id="camera"
-                                bind:value={camera}
-                                placeholder="z.B. Sony A7III"
-                            />
-                        </div>
 
-                        <div class="form-group">
-                            <label for="lens">Objektiv</label>
-                            <input
-                                type="text"
-                                id="lens"
-                                bind:value={lens}
-                                placeholder="z.B. 24-70mm f/2.8"
-                            />
-                        </div>
-
-                        <div class="form-group full-width">
-                            <label for="settings">Einstellungen</label>
-                            <input
-                                type="text"
-                                id="settings"
-                                bind:value={settings}
-                                placeholder="z.B. f/2.8, 1/125s, ISO 800"
-                            />
-                        </div>
+                    <div class="form-group">
+                        <label for="camera">Kamera</label>
+                        <input
+                            type="text"
+                            id="camera"
+                            bind:value={camera}
+                            placeholder="z.B. Sony A7III"
+                        />
                     </div>
-                </div>
 
-                <!-- Submit Button -->
+                    <div class="form-group">
+                        <label for="lens">Objektiv</label>
+                        <input
+                            type="text"
+                            id="lens"
+                            bind:value={lens}
+                            placeholder="z.B. 24-70mm f/2.8"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="settings">Einstellungen</label>
+                        <input
+                            type="text"
+                            id="settings"
+                            bind:value={settings}
+                            placeholder="z.B. f/2.8, 1/125s, ISO 800"
+                        />
+                    </div>
+                </section>
+
+                <!-- Actions -->
                 <div class="form-actions">
+                    {#if canDelete}
+                        <DeleteButton
+                            label="Beitrag löschen"
+                            loadingLabel="Löschen..."
+                            loading={deleting}
+                            disabled={isSubmitting}
+                            on:click={handleDelete}
+                        />
+                    {/if}
+                    <div class="spacer"></div>
                     <SecondaryButton on:click={goBack} type="button">
                         Abbrechen
                     </SecondaryButton>
                     <PrimaryButton type="submit" disabled={isSubmitting}>
                         {#if isSubmitting}
-                            <span class="loading-spinner"></span>
+                            <span class="loading"></span>
                             <span>Speichern...</span>
                         {:else}
-                            <Save size={20} />
-                            <span>Änderungen speichern</span>
+                            Änderungen speichern
                         {/if}
                     </PrimaryButton>
                 </div>
@@ -236,40 +288,19 @@
         padding: var(--spacing-2xl) 0;
     }
 
-    .container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 0 var(--spacing-xl);
-    }
-
     .page-header {
         margin-bottom: var(--spacing-2xl);
-    }
-
-    .back-nav {
-        margin-bottom: var(--spacing-md);
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-lg);
-    }
-
-    .header-content :global(.header-icon) {
-        color: var(--color-text-primary);
     }
 
     .page-header h1 {
         font-size: 2rem;
         font-weight: 700;
-        margin: 0;
-        color: var(--color-text-primary);
+        margin: 0 0 var(--spacing-sm) 0;
     }
 
-    .subtitle {
-        color: var(--color-text-muted);
-        margin: var(--spacing-xs) 0 0 0;
+    .page-header p {
+        color: var(--color-text-secondary);
+        margin: 0;
     }
 
     .loading-state,
@@ -283,98 +314,85 @@
         text-align: center;
     }
 
-    .loading {
-        width: 48px;
-        height: 48px;
-        border: 4px solid var(--color-border);
-        border-top-color: var(--color-primary);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    .loading-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        display: inline-block;
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+    .loading-state p {
+        color: var(--color-text-secondary);
+        margin: 0;
     }
 
     /* Form */
     .submission-form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-2xl);
+        background: white;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-2xl);
+        max-width: 800px;
     }
 
     .form-section {
-        background: white;
-        padding: var(--spacing-xl);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--color-border);
+        margin-bottom: var(--spacing-2xl);
+        padding-bottom: var(--spacing-2xl);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: var(--spacing-xl);
     }
 
     .form-section h2 {
-        margin: 0 0 var(--spacing-lg) 0;
         font-size: 1.25rem;
         font-weight: 600;
-        color: var(--color-text-primary);
+        margin: 0 0 var(--spacing-md) 0;
+    }
+
+    /* Image Preview */
+    .image-preview {
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
     }
 
     .image-preview img {
         width: 100%;
-        max-height: 400px;
-        object-fit: contain;
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-border);
-        background: #f0f0f0;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: var(--spacing-lg);
+        height: 100%;
+        object-fit: cover;
     }
 
     /* Form Groups */
     .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
+        margin-bottom: var(--spacing-lg);
     }
 
-    .form-group.full-width {
-        grid-column: 1 / -1;
+    .form-group:last-child {
+        margin-bottom: 0;
     }
 
     .form-group label {
-        font-weight: 600;
+        display: block;
+        font-weight: 500;
+        margin-bottom: var(--spacing-sm);
         color: var(--color-text-primary);
-        font-size: 0.875rem;
     }
 
     .form-group input[type="text"],
+    .form-group select,
     .form-group textarea {
+        width: 100%;
         padding: var(--spacing-sm) var(--spacing-md);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
         font-family: inherit;
-        font-size: 1rem;
-        transition: border-color 0.2s ease;
     }
 
     .form-group input:focus,
+    .form-group select:focus,
     .form-group textarea:focus {
         outline: none;
-        border-color: var(--color-primary);
+        border-color: var(--color-accent);
     }
 
     .form-group textarea {
@@ -391,22 +409,54 @@
     /* Form Actions */
     .form-actions {
         display: flex;
-        justify-content: flex-end;
+        align-items: center;
         gap: var(--spacing-md);
         padding-top: var(--spacing-lg);
     }
 
-    @media (max-width: 768px) {
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
+    .spacer {
+        flex: 1;
+    }
 
+    .delete-button {
+        all: unset;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: var(--spacing-sm) var(--spacing-md);
+        color: var(--color-danger, #dc2626);
+        background: white;
+        border: 1px solid var(--color-danger, #dc2626);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .delete-button:hover:not(:disabled) {
+        background: var(--color-danger, #dc2626);
+        color: white;
+    }
+
+    .delete-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
         .submission-form {
-            padding: 0;
+            padding: var(--spacing-lg);
         }
 
         .form-actions {
             flex-direction: column;
+        }
+
+        .form-actions :global(button),
+        .form-actions :global(a) {
+            width: 100%;
         }
     }
 </style>

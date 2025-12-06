@@ -1,61 +1,76 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { currentUser, isAuthenticated } from '$lib/stores/auth0';
-	import { createCompetition, uploadImage, deleteUploadedImage } from '$lib/api.js';
-	import { Trophy, Calendar, Image, Users, Plus, X, Upload, Search } from 'lucide-svelte';
-	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
-	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import { onMount, onDestroy } from "svelte";
+	import { goto } from "$app/navigation";
+	import { currentUser, isAuthenticated } from "$lib/stores/auth0";
+	import {
+		createCompetition,
+		uploadImage,
+		deleteUploadedImage,
+	} from "$lib/api.js";
+	import {
+		Trophy,
+		Calendar,
+		Image,
+		Users,
+		Plus,
+		X,
+		Upload,
+		Search,
+	} from "lucide-svelte";
+	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
+	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
 
 	let loading = false;
 	let uploadingImage = false;
 	let juryMembers = [];
 	let allUsers = [];
-	let jurySearchQuery = '';
+	let jurySearchQuery = "";
 	let heroImageFile = null;
 	let heroImagePreview = null;
 	let competitionCreated = false; // Track if competition was successfully created
 
 	// Form data
 	let formData = {
-		title: '',
-		description: '',
-		theme: '',
-		startDate: '',
-		deadline: '',
-		imageUrl: '',
-		prizes: [''],
-		rules: [''],
+		title: "",
+		description: "",
+		theme: "",
+		startDate: "",
+		deadline: "",
+		imageUrl: "",
+		prizes: [""],
+		rules: [""],
 		juryMembers: [],
 		votingWeight: {
 			community: 0.5,
-			jury: 0.5
-		}
+			jury: 0.5,
+		},
 	};
 
 	let errors = {};
 
 	onMount(async () => {
 		// Check if user is admin
-		if (!$isAuthenticated || $currentUser?.role !== 'admin') {
-			goto('/admin');
+		if (!$isAuthenticated || $currentUser?.role !== "admin") {
+			goto("/admin");
 			return;
 		}
 
 		// Load all users for jury selection
 		try {
-			const response = await fetch('/api/admin/users');
+			const response = await fetch("/api/admin/users");
 			if (response.ok) {
 				allUsers = await response.json();
-				juryMembers = allUsers.filter(u => u.role === 'jury' || u.role === 'admin');
+				juryMembers = allUsers.filter(
+					(u) => u.role === "jury" || u.role === "admin",
+				);
 			}
 		} catch (error) {
-			console.error('Error loading users:', error);
+			console.error("Error loading users:", error);
 		}
 	});
 
 	function addPrize() {
-		formData.prizes = [...formData.prizes, ''];
+		formData.prizes = [...formData.prizes, ""];
 	}
 
 	function removePrize(index) {
@@ -63,7 +78,7 @@
 	}
 
 	function addRule() {
-		formData.rules = [...formData.rules, ''];
+		formData.rules = [...formData.rules, ""];
 	}
 
 	function removeRule(index) {
@@ -72,14 +87,16 @@
 
 	function toggleJuryMember(username) {
 		if (formData.juryMembers.includes(username)) {
-			formData.juryMembers = formData.juryMembers.filter(u => u !== username);
+			formData.juryMembers = formData.juryMembers.filter(
+				(u) => u !== username,
+			);
 		} else {
 			formData.juryMembers = [...formData.juryMembers, username];
 		}
 	}
 
 	// Filter jury members based on search query
-	$: filteredJuryMembers = juryMembers.filter(user => {
+	$: filteredJuryMembers = juryMembers.filter((user) => {
 		if (!jurySearchQuery) return true;
 		const query = jurySearchQuery.toLowerCase();
 		return (
@@ -95,15 +112,20 @@
 		if (!file) return;
 
 		// Validate file type
-		const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+		const allowedTypes = [
+			"image/jpeg",
+			"image/jpg",
+			"image/png",
+			"image/webp",
+		];
 		if (!allowedTypes.includes(file.type)) {
-			alert('Ungültiger Dateityp! Nur JPEG, PNG und WebP erlaubt.');
+			alert("Ungültiger Dateityp! Nur JPEG, PNG und WebP erlaubt.");
 			return;
 		}
 
 		// Validate file size (max 100MB)
 		if (file.size > 100 * 1024 * 1024) {
-			alert('Bild ist zu groß. Maximum 100MB erlaubt.');
+			alert("Bild ist zu groß. Maximum 100MB erlaubt.");
 			return;
 		}
 
@@ -123,7 +145,7 @@
 	function removeHeroImage() {
 		heroImageFile = null;
 		heroImagePreview = null;
-		formData.imageUrl = '';
+		formData.imageUrl = "";
 	}
 
 	async function uploadHeroImage() {
@@ -131,13 +153,13 @@
 
 		uploadingImage = true;
 		try {
-			const result = await uploadImage(heroImageFile, 'competitions');
+			const result = await uploadImage(heroImageFile, "competitions");
 			// Check both possible response formats
 			formData.imageUrl = result.imageUrl || result.url;
-			console.log('Upload successful, URL:', formData.imageUrl);
+			console.log("Upload successful, URL:", formData.imageUrl);
 		} catch (error) {
-			console.error('Error uploading image:', error);
-			alert('Fehler beim Hochladen des Bildes: ' + error.message);
+			console.error("Error uploading image:", error);
+			alert("Fehler beim Hochladen des Bildes: " + error.message);
 			// Reset on error
 			heroImageFile = null;
 			heroImagePreview = null;
@@ -150,32 +172,37 @@
 		errors = {};
 
 		if (!formData.title.trim()) {
-			errors.title = 'Titel ist erforderlich';
+			errors.title = "Titel ist erforderlich";
 		}
 
 		if (!formData.description.trim()) {
-			errors.description = 'Beschreibung ist erforderlich';
+			errors.description = "Beschreibung ist erforderlich";
 		}
 
 		if (!formData.theme.trim()) {
-			errors.theme = 'Thema ist erforderlich';
+			errors.theme = "Thema ist erforderlich";
 		}
 
 		if (!formData.startDate) {
-			errors.startDate = 'Startdatum ist erforderlich';
+			errors.startDate = "Startdatum ist erforderlich";
 		}
 
 		if (!formData.deadline) {
-			errors.deadline = 'Deadline ist erforderlich';
+			errors.deadline = "Deadline ist erforderlich";
 		}
 
-		if (formData.startDate && formData.deadline && new Date(formData.startDate) >= new Date(formData.deadline)) {
-			errors.deadline = 'Deadline muss nach dem Startdatum liegen';
+		if (
+			formData.startDate &&
+			formData.deadline &&
+			new Date(formData.startDate) >= new Date(formData.deadline)
+		) {
+			errors.deadline = "Deadline muss nach dem Startdatum liegen";
 		}
 
-		const totalWeight = formData.votingWeight.community + formData.votingWeight.jury;
+		const totalWeight =
+			formData.votingWeight.community + formData.votingWeight.jury;
 		if (Math.abs(totalWeight - 1) > 0.01) {
-			errors.votingWeight = 'Voting-Gewichte müssen zusammen 1.0 ergeben';
+			errors.votingWeight = "Voting-Gewichte müssen zusammen 1.0 ergeben";
 		}
 
 		return Object.keys(errors).length === 0;
@@ -194,33 +221,39 @@
 			// Clean up empty prizes and rules
 			const cleanedData = {
 				...formData,
-				prizes: formData.prizes.filter(p => p.trim()),
-				rules: formData.rules.filter(r => r.trim())
+				prizes: formData.prizes.filter((p) => p.trim()),
+				rules: formData.rules.filter((r) => r.trim()),
 			};
 
 			const competition = await createCompetition(cleanedData);
 			competitionCreated = true; // Mark as successfully created
-			alert('Wettbewerb erfolgreich erstellt!');
+			alert("Wettbewerb erfolgreich erstellt!");
 			goto(`/competitions/${competition._id}`);
 		} catch (error) {
-			console.error('Error creating competition:', error);
-			alert(`Fehler beim Erstellen: ${error.message || 'Unbekannter Fehler'}`);
+			console.error("Error creating competition:", error);
+			alert(
+				`Fehler beim Erstellen: ${error.message || "Unbekannter Fehler"}`,
+			);
 		} finally {
 			loading = false;
 		}
 	}
 
 	async function handleCancel() {
-		if (confirm('Möchten Sie den Vorgang abbrechen? Alle Änderungen gehen verloren.')) {
+		if (
+			confirm(
+				"Möchten Sie den Vorgang abbrechen? Alle Änderungen gehen verloren.",
+			)
+		) {
 			// Delete uploaded hero image if exists
 			if (formData.imageUrl) {
 				try {
 					await deleteUploadedImage(formData.imageUrl);
 				} catch (error) {
-					console.error('Error deleting uploaded image:', error);
+					console.error("Error deleting uploaded image:", error);
 				}
 			}
-			goto('/admin');
+			goto("/admin");
 		}
 	}
 
@@ -231,7 +264,7 @@
 			try {
 				await deleteUploadedImage(formData.imageUrl);
 			} catch (error) {
-				console.error('Error cleaning up image:', error);
+				console.error("Error cleaning up image:", error);
 			}
 		}
 	});
@@ -291,9 +324,7 @@
 				</div>
 
 				<div class="form-group">
-					<label for="description">
-						Beschreibung *
-					</label>
+					<label for="description"> Beschreibung * </label>
 					<textarea
 						id="description"
 						bind:value={formData.description}
@@ -315,7 +346,10 @@
 
 					{#if heroImagePreview}
 						<div class="image-preview">
-							<img src={heroImagePreview} alt="Hero-Bild Vorschau" />
+							<img
+								src={heroImagePreview}
+								alt="Hero-Bild Vorschau"
+							/>
 							<div class="image-preview-actions">
 								{#if uploadingImage}
 									<div class="upload-status">
@@ -323,7 +357,9 @@
 										<span>Wird hochgeladen...</span>
 									</div>
 								{:else if formData.imageUrl}
-									<span class="upload-success">✓ Erfolgreich hochgeladen</span>
+									<span class="upload-success"
+										>✓ Erfolgreich hochgeladen</span
+									>
 								{/if}
 								<button
 									type="button"
@@ -347,19 +383,30 @@
 							<div class="upload-placeholder">
 								<Upload size={32} />
 								<p>Klicken Sie hier, um ein Bild auszuwählen</p>
-								<span class="help-text">JPEG, PNG oder WebP (max 100MB)</span>
-								<span class="help-text">Bild wird komprimiert und hochgeladen</span>
+								<span class="help-text"
+									>JPEG, PNG oder WebP (max 100MB)</span
+								>
+								<span class="help-text"
+									>Bild wird komprimiert und hochgeladen</span
+								>
 							</div>
 						</label>
 					{/if}
 
 					{#if formData.imageUrl}
 						<div class="image-url-display">
-							<span class="help-text">Cloudinary URL: {formData.imageUrl.substring(0, 50)}...</span>
+							<span class="help-text"
+								>Cloudinary URL: {formData.imageUrl.substring(
+									0,
+									50,
+								)}...</span
+							>
 						</div>
 					{/if}
 
-					<span class="help-text">Optionales Titelbild für den Wettbewerb</span>
+					<span class="help-text"
+						>Optionales Titelbild für den Wettbewerb</span
+					>
 				</div>
 			</section>
 
@@ -381,7 +428,8 @@
 							required
 						/>
 						{#if errors.startDate}
-							<span class="error-message">{errors.startDate}</span>
+							<span class="error-message">{errors.startDate}</span
+							>
 						{/if}
 					</div>
 
@@ -415,16 +463,14 @@
 							bind:value={formData.prizes[index]}
 							placeholder="z.B. 1. Platz: CHF 500"
 						/>
-						{#if formData.prizes.length > 1}
-							<button
-								type="button"
-								class="btn-remove"
-								on:click={() => removePrize(index)}
-								aria-label="Preis entfernen"
-							>
-								<X size={18} />
-							</button>
-						{/if}
+						<button
+							type="button"
+							class="btn-remove"
+							on:click={() => removePrize(index)}
+							aria-label="Preis entfernen"
+						>
+							<X size={18} />
+						</button>
 					</div>
 				{/each}
 
@@ -445,16 +491,14 @@
 							bind:value={formData.rules[index]}
 							placeholder="z.B. Nur Original-Fotos erlaubt"
 						/>
-						{#if formData.rules.length > 1}
-							<button
-								type="button"
-								class="btn-remove"
-								on:click={() => removeRule(index)}
-								aria-label="Regel entfernen"
-							>
-								<X size={18} />
-							</button>
-						{/if}
+						<button
+							type="button"
+							class="btn-remove"
+							on:click={() => removeRule(index)}
+							aria-label="Regel entfernen"
+						>
+							<X size={18} />
+						</button>
 					</div>
 				{/each}
 
@@ -467,7 +511,9 @@
 			<!-- Jury Selection -->
 			<section class="form-section">
 				<h2>Jury-Mitglieder</h2>
-				<p class="section-description">Wählen Sie Benutzer aus, die als Jury fungieren sollen</p>
+				<p class="section-description">
+					Wählen Sie Benutzer aus, die als Jury fungieren sollen
+				</p>
 
 				{#if juryMembers.length > 0}
 					<!-- Jury Search -->
@@ -483,7 +529,7 @@
 							<button
 								type="button"
 								class="clear-jury-search"
-								on:click={() => jurySearchQuery = ''}
+								on:click={() => (jurySearchQuery = "")}
 								aria-label="Suche löschen"
 							>
 								×
@@ -494,14 +540,19 @@
 					<!-- Selected count -->
 					{#if formData.juryMembers.length > 0}
 						<div class="jury-selected-count">
-							{formData.juryMembers.length} Jury-Mitglied{formData.juryMembers.length !== 1 ? 'er' : ''} ausgewählt
+							{formData.juryMembers.length} Jury-Mitglied{formData
+								.juryMembers.length !== 1
+								? "er"
+								: ""} ausgewählt
 						</div>
 					{/if}
 
 					<!-- Jury Grid -->
 					{#if filteredJuryMembers.length === 0}
 						<div class="no-results">
-							<p>Keine Jury-Mitglieder gefunden für "{jurySearchQuery}"</p>
+							<p>
+								Keine Jury-Mitglieder gefunden für "{jurySearchQuery}"
+							</p>
 						</div>
 					{:else}
 						<div class="jury-grid">
@@ -509,16 +560,29 @@
 								<label class="jury-checkbox">
 									<input
 										type="checkbox"
-										checked={formData.juryMembers.includes(user.username)}
-										on:change={() => toggleJuryMember(user.username)}
+										checked={formData.juryMembers.includes(
+											user.username,
+										)}
+										on:change={() =>
+											toggleJuryMember(user.username)}
 									/>
 									<div class="jury-user">
-										<img src={user.avatar} alt={user.name} class="jury-avatar" />
+										<img
+											src={user.avatar}
+											alt={user.name}
+											class="jury-avatar"
+										/>
 										<div class="jury-info">
-											<div class="jury-name">{user.name}</div>
-											<div class="jury-username">@{user.username}</div>
+											<div class="jury-name">
+												{user.name}
+											</div>
+											<div class="jury-username">
+												@{user.username}
+											</div>
 										</div>
-										<span class="role-badge role-{user.role}">
+										<span
+											class="role-badge role-{user.role}"
+										>
 											{user.role}
 										</span>
 									</div>
@@ -528,7 +592,8 @@
 					{/if}
 				{:else}
 					<p class="no-jury-message">
-						Keine Jury-Mitglieder verfügbar. Weisen Sie Benutzern die Rolle "Jury" oder "Admin" zu.
+						Keine Jury-Mitglieder verfügbar. Weisen Sie Benutzern
+						die Rolle "Jury" oder "Admin" zu.
 					</p>
 				{/if}
 			</section>
@@ -536,7 +601,9 @@
 			<!-- Voting Weight -->
 			<section class="form-section">
 				<h2>Voting-Gewichtung</h2>
-				<p class="section-description">Wie sollen Community- und Jury-Votes gewichtet werden?</p>
+				<p class="section-description">
+					Wie sollen Community- und Jury-Votes gewichtet werden?
+				</p>
 
 				<div class="voting-weights">
 					<div class="form-group">
@@ -553,7 +620,11 @@
 							bind:value={formData.votingWeight.community}
 							class:error={errors.votingWeight}
 						/>
-						<span class="weight-percentage">{(formData.votingWeight.community * 100).toFixed(0)}%</span>
+						<span class="weight-percentage"
+							>{(formData.votingWeight.community * 100).toFixed(
+								0,
+							)}%</span
+						>
 					</div>
 
 					<div class="form-group">
@@ -570,7 +641,11 @@
 							bind:value={formData.votingWeight.jury}
 							class:error={errors.votingWeight}
 						/>
-						<span class="weight-percentage">{(formData.votingWeight.jury * 100).toFixed(0)}%</span>
+						<span class="weight-percentage"
+							>{(formData.votingWeight.jury * 100).toFixed(
+								0,
+							)}%</span
+						>
 					</div>
 				</div>
 
@@ -579,7 +654,11 @@
 				{/if}
 
 				<div class="weight-total" class:error={errors.votingWeight}>
-					Gesamt: {((formData.votingWeight.community + formData.votingWeight.jury) * 100).toFixed(0)}%
+					Gesamt: {(
+						(formData.votingWeight.community +
+							formData.votingWeight.jury) *
+						100
+					).toFixed(0)}%
 					{#if Math.abs(formData.votingWeight.community + formData.votingWeight.jury - 1) < 0.01}
 						✓
 					{:else}
@@ -590,7 +669,11 @@
 
 			<!-- Submit -->
 			<div class="form-actions">
-				<SecondaryButton type="button" on:click={handleCancel} disabled={loading}>
+				<SecondaryButton
+					type="button"
+					on:click={handleCancel}
+					disabled={loading}
+				>
 					Abbrechen
 				</SecondaryButton>
 				<PrimaryButton type="submit" disabled={loading}>

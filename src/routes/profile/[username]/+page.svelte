@@ -137,7 +137,7 @@
 		<section class="submissions-section">
 			<div class="container">
 				<div class="section-header">
-					<h2>Submissions</h2>
+					<h2>Beiträge</h2>
 					<span class="count">{user.submissions.length}</span>
 				</div>
 				
@@ -156,7 +156,7 @@
 			<div class="container">
 				<div class="empty-state">
 					<ImageIcon size={64} />
-					<h3>Noch keine Submissions</h3>
+					<h3>Noch keine Beiträge</h3>
 					<p>Dieser Nutzer hat noch keine Fotos eingereicht.</p>
 				</div>
 			</div>
