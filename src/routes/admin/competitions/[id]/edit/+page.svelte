@@ -1,12 +1,27 @@
 <script>
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { currentUser, isAuthenticated } from '$lib/stores/auth0';
-	import { getCompetitionById, updateCompetition, uploadImage } from '$lib/api.js';
-	import { Trophy, Calendar, Image, Users, Plus, X, Upload, Search, Save, ArrowLeft } from 'lucide-svelte';
-	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
-	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import { onMount } from "svelte";
+	import { page } from "$app/stores";
+	import { goto } from "$app/navigation";
+	import { currentUser, isAuthenticated } from "$lib/stores/auth0";
+	import {
+		getCompetitionById,
+		updateCompetition,
+		uploadImage,
+	} from "$lib/api.js";
+	import {
+		Trophy,
+		Calendar,
+		Image,
+		Users,
+		Plus,
+		X,
+		Upload,
+		Search,
+		Save,
+		ArrowLeft,
+	} from "lucide-svelte";
+	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
+	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
 
 	let loading = true;
 	let saving = false;
@@ -14,7 +29,7 @@
 	let competition = null;
 	let juryMembers = [];
 	let allUsers = [];
-	let jurySearchQuery = '';
+	let jurySearchQuery = "";
 	let heroImageFile = null;
 	let heroImagePreview = null;
 	let fileInput;
@@ -24,28 +39,28 @@
 
 	// Form data
 	let formData = {
-		title: '',
-		description: '',
-		theme: '',
-		startDate: '',
-		deadline: '',
-		imageUrl: '',
-		prizes: [''],
-		rules: [''],
+		title: "",
+		description: "",
+		theme: "",
+		startDate: "",
+		deadline: "",
+		imageUrl: "",
+		prizes: [""],
+		rules: [""],
 		juryMembers: [],
 		votingWeight: {
 			community: 0.5,
-			jury: 0.5
+			jury: 0.5,
 		},
-		status: 'active'
+		status: "active",
 	};
 
 	let errors = {};
 
 	onMount(async () => {
 		// Check if user is admin
-		if (!$isAuthenticated || $currentUser?.role !== 'admin') {
-			goto('/admin');
+		if (!$isAuthenticated || $currentUser?.role !== "admin") {
+			goto("/admin");
 			return;
 		}
 
@@ -61,42 +76,60 @@
 
 			// Populate form with competition data
 			formData = {
-				title: competition.title || '',
-				description: competition.description || '',
-				theme: competition.theme || '',
-				startDate: competition.startDate ? competition.startDate.split('T')[0] : '',
-				deadline: competition.deadline ? competition.deadline.split('T')[0] : '',
-				imageUrl: competition.imageUrl || '',
-				prizes: Array.isArray(competition.prizes) && competition.prizes.length > 0 ? competition.prizes : [''],
-				rules: Array.isArray(competition.rules) && competition.rules.length > 0
-					? competition.rules
-					: (competition.rules && typeof competition.rules === 'string'
-						? competition.rules.split('\n').filter(r => r.trim())
-						: ['']),
+				title: competition.title || "",
+				description: competition.description || "",
+				theme: competition.theme || "",
+				startDate: competition.startDate
+					? competition.startDate.split("T")[0]
+					: "",
+				deadline: competition.deadline
+					? competition.deadline.split("T")[0]
+					: "",
+				imageUrl: competition.imageUrl || "",
+				prizes:
+					Array.isArray(competition.prizes) &&
+					competition.prizes.length > 0
+						? competition.prizes
+						: [""],
+				rules:
+					Array.isArray(competition.rules) &&
+					competition.rules.length > 0
+						? competition.rules
+						: competition.rules &&
+							  typeof competition.rules === "string"
+							? competition.rules
+									.split("\n")
+									.filter((r) => r.trim())
+							: [""],
 				juryMembers: competition.juryMembers || [],
-				votingWeight: competition.votingWeight || { community: 0.5, jury: 0.5 },
-				status: competition.status || 'active'
+				votingWeight: competition.votingWeight || {
+					community: 0.5,
+					jury: 0.5,
+				},
+				status: competition.status || "active",
 			};
 
 			heroImagePreview = competition.imageUrl;
 			uploadSuccess = false;
 
 			// Load all users for jury selection
-			const response = await fetch('/api/admin/users');
+			const response = await fetch("/api/admin/users");
 			if (response.ok) {
 				allUsers = await response.json();
-				juryMembers = allUsers.filter(u => u.role === 'jury' || u.role === 'admin');
+				juryMembers = allUsers.filter(
+					(u) => u.role === "jury" || u.role === "admin",
+				);
 			}
 		} catch (error) {
-			console.error('Error loading data:', error);
-			alert('Fehler beim Laden der Competition: ' + error.message);
+			console.error("Error loading data:", error);
+			alert("Fehler beim Laden der Competition: " + error.message);
 		} finally {
 			loading = false;
 		}
 	}
 
 	function addPrize() {
-		formData.prizes = [...formData.prizes, ''];
+		formData.prizes = [...formData.prizes, ""];
 	}
 
 	function removePrize(index) {
@@ -104,7 +137,7 @@
 	}
 
 	function addRule() {
-		formData.rules = [...formData.rules, ''];
+		formData.rules = [...formData.rules, ""];
 	}
 
 	function removeRule(index) {
@@ -113,13 +146,15 @@
 
 	function toggleJuryMember(username) {
 		if (formData.juryMembers.includes(username)) {
-			formData.juryMembers = formData.juryMembers.filter(u => u !== username);
+			formData.juryMembers = formData.juryMembers.filter(
+				(u) => u !== username,
+			);
 		} else {
 			formData.juryMembers = [...formData.juryMembers, username];
 		}
 	}
 
-	$: filteredJuryMembers = juryMembers.filter(user => {
+	$: filteredJuryMembers = juryMembers.filter((user) => {
 		if (!jurySearchQuery) return true;
 		const query = jurySearchQuery.toLowerCase();
 		return (
@@ -137,14 +172,19 @@
 		const file = event.target.files?.[0];
 		if (!file) return;
 
-		const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+		const allowedTypes = [
+			"image/jpeg",
+			"image/jpg",
+			"image/png",
+			"image/webp",
+		];
 		if (!allowedTypes.includes(file.type)) {
-			alert('Ungültiger Dateityp! Nur JPEG, PNG und WebP erlaubt.');
+			alert("Ungültiger Dateityp! Nur JPEG, PNG und WebP erlaubt.");
 			return;
 		}
 
 		if (file.size > 100 * 1024 * 1024) {
-			alert('Bild ist zu groß. Maximum 100MB erlaubt.');
+			alert("Bild ist zu groß. Maximum 100MB erlaubt.");
 			return;
 		}
 
@@ -164,13 +204,13 @@
 		if (!heroImageFile) return;
 		uploadingImage = true;
 		try {
-			const result = await uploadImage(heroImageFile, 'competitions');
+			const result = await uploadImage(heroImageFile, "competitions");
 			formData.imageUrl = result.imageUrl || result.url;
 			uploadSuccess = true;
-			console.log('Upload successful, URL:', formData.imageUrl);
+			console.log("Upload successful, URL:", formData.imageUrl);
 		} catch (error) {
-			console.error('Error uploading image:', error);
-			alert('Fehler beim Hochladen des Bildes: ' + error.message);
+			console.error("Error uploading image:", error);
+			alert("Fehler beim Hochladen des Bildes: " + error.message);
 			heroImageFile = null;
 			heroImagePreview = null;
 			uploadSuccess = false;
@@ -183,36 +223,38 @@
 		errors = {};
 
 		if (!formData.title.trim()) {
-			errors.title = 'Titel ist erforderlich';
+			errors.title = "Titel ist erforderlich";
 		}
 
 		if (!formData.description.trim()) {
-			errors.description = 'Beschreibung ist erforderlich';
+			errors.description = "Beschreibung ist erforderlich";
 		}
 
 		if (!formData.theme.trim()) {
-			errors.theme = 'Thema ist erforderlich';
+			errors.theme = "Thema ist erforderlich";
 		}
 
 		if (!formData.startDate) {
-			errors.startDate = 'Startdatum ist erforderlich';
+			errors.startDate = "Startdatum ist erforderlich";
 		}
 
 		if (!formData.deadline) {
-			errors.deadline = 'Deadline ist erforderlich';
+			errors.deadline = "Deadline ist erforderlich";
 		}
 
 		if (formData.startDate && formData.deadline) {
 			const start = new Date(formData.startDate);
 			const end = new Date(formData.deadline);
 			if (start >= end) {
-				errors.deadline = 'Deadline muss nach dem Startdatum liegen';
+				errors.deadline = "Deadline muss nach dem Startdatum liegen";
 			}
 		}
 
-		const totalWeight = formData.votingWeight.community + formData.votingWeight.jury;
+		const totalWeight =
+			formData.votingWeight.community + formData.votingWeight.jury;
 		if (Math.abs(totalWeight - 1) > 0.01) {
-			errors.votingWeight = 'Community- und Jury-Gewicht müssen zusammen 1.0 ergeben';
+			errors.votingWeight =
+				"Community- und Jury-Gewicht müssen zusammen 1.0 ergeben";
 		}
 
 		return Object.keys(errors).length === 0;
@@ -222,7 +264,7 @@
 		event.preventDefault();
 
 		if (!validateForm()) {
-			alert('Bitte fülle alle erforderlichen Felder korrekt aus');
+			alert("Bitte fülle alle erforderlichen Felder korrekt aus");
 			return;
 		}
 
@@ -231,24 +273,28 @@
 		try {
 			const cleanedData = {
 				...formData,
-				prizes: formData.prizes.filter(p => p.trim() !== ''),
-				rules: formData.rules.filter(r => r.trim() !== '')
+				prizes: formData.prizes.filter((p) => p.trim() !== ""),
+				rules: formData.rules.filter((r) => r.trim() !== ""),
 			};
 
 			await updateCompetition(competitionId, cleanedData);
 
-			alert('Competition erfolgreich aktualisiert! ✅');
+			alert("Competition erfolgreich aktualisiert! ✅");
 			goto(`/competitions/${competitionId}`);
 		} catch (error) {
-			console.error('Update error:', error);
-			alert('Fehler beim Aktualisieren: ' + error.message);
+			console.error("Update error:", error);
+			alert("Fehler beim Aktualisieren: " + error.message);
 		} finally {
 			saving = false;
 		}
 	}
 
 	function handleCancel() {
-		if (confirm('Möchtest du die Bearbeitung wirklich abbrechen? Alle ungespeicherten Änderungen gehen verloren.')) {
+		if (
+			confirm(
+				"Möchtest du die Bearbeitung wirklich abbrechen? Alle ungespeicherten Änderungen gehen verloren.",
+			)
+		) {
 			goto(`/competitions/${competitionId}`);
 		}
 	}
@@ -368,7 +414,9 @@
 							required
 						></textarea>
 						{#if errors.description}
-							<span class="error-message">{errors.description}</span>
+							<span class="error-message"
+								>{errors.description}</span
+							>
 						{/if}
 					</div>
 				</div>
@@ -388,7 +436,8 @@
 							required
 						/>
 						{#if errors.startDate}
-							<span class="error-message">{errors.startDate}</span>
+							<span class="error-message">{errors.startDate}</span
+							>
 						{/if}
 					</div>
 
@@ -432,7 +481,11 @@
 								bind:value={formData.prizes[index]}
 								placeholder={`Preis ${index + 1}`}
 							/>
-							<button type="button" on:click={() => removePrize(index)} class="remove-button">
+							<button
+								type="button"
+								on:click={() => removePrize(index)}
+								class="remove-button"
+							>
 								<X size={16} />
 							</button>
 						</div>
@@ -455,7 +508,11 @@
 								bind:value={formData.rules[index]}
 								placeholder={`Regel ${index + 1}`}
 							/>
-							<button type="button" on:click={() => removeRule(index)} class="remove-button">
+							<button
+								type="button"
+								on:click={() => removeRule(index)}
+								class="remove-button"
+							>
 								<X size={16} />
 							</button>
 						</div>
@@ -478,7 +535,11 @@
 						placeholder="Nach Name, Username oder Email suchen..."
 					/>
 					{#if jurySearchQuery}
-						<button type="button" on:click={() => jurySearchQuery = ''} class="clear-search">
+						<button
+							type="button"
+							on:click={() => (jurySearchQuery = "")}
+							class="clear-search"
+						>
 							<X size={16} />
 						</button>
 					{/if}
@@ -499,20 +560,41 @@
 									<th style="width: 50px;">
 										<input
 											type="checkbox"
-											checked={filteredJuryMembers.every(m => formData.juryMembers.includes(m.username))}
+											checked={filteredJuryMembers.every(
+												(m) =>
+													formData.juryMembers.includes(
+														m.username,
+													),
+											)}
 											on:change={(e) => {
 												if (e.target.checked) {
-													filteredJuryMembers.forEach(m => {
-														if (!formData.juryMembers.includes(m.username)) {
-															toggleJuryMember(m.username);
-														}
-													});
+													filteredJuryMembers.forEach(
+														(m) => {
+															if (
+																!formData.juryMembers.includes(
+																	m.username,
+																)
+															) {
+																toggleJuryMember(
+																	m.username,
+																);
+															}
+														},
+													);
 												} else {
-													filteredJuryMembers.forEach(m => {
-														if (formData.juryMembers.includes(m.username)) {
-															toggleJuryMember(m.username);
-														}
-													});
+													filteredJuryMembers.forEach(
+														(m) => {
+															if (
+																formData.juryMembers.includes(
+																	m.username,
+																)
+															) {
+																toggleJuryMember(
+																	m.username,
+																);
+															}
+														},
+													);
 												}
 											}}
 										/>
@@ -524,30 +606,49 @@
 							</thead>
 							<tbody>
 								{#each filteredJuryMembers as member}
-								<tr>
-									<td>
-										<input
-											type="checkbox"
-											checked={formData.juryMembers.includes(member.username)}
-											on:change={() => toggleJuryMember(member.username)}
-										/>
-									</td>
-									<td>
-										<div class="user-cell">
-											<img src={member.avatar} alt={member.name} class="user-avatar" />
-											<div>
-												<div class="user-name">{member.name || member.username}</div>
-												<div class="user-username">@{member.username}</div>
+									<tr>
+										<td>
+											<input
+												type="checkbox"
+												checked={formData.juryMembers.includes(
+													member.username,
+												)}
+												on:change={() =>
+													toggleJuryMember(
+														member.username,
+													)}
+											/>
+										</td>
+										<td>
+											<div class="user-cell">
+												<img
+													src={member.avatar}
+													alt={member.name}
+													class="user-avatar"
+												/>
+												<div>
+													<div class="user-name">
+														{member.name ||
+															member.username}
+													</div>
+													<div class="user-username">
+														@{member.username}
+													</div>
+												</div>
 											</div>
-										</div>
-									</td>
-									<td class="email-cell">{member.email}</td>
-									<td>
-										<span class="role-badge role-{member.role || 'jury'}">
-											{member.role || 'jury'}
-										</span>
-									</td>
-								</tr>
+										</td>
+										<td class="email-cell"
+											>{member.email}</td
+										>
+										<td>
+											<span
+												class="role-badge role-{member.role ||
+													'jury'}"
+											>
+												{member.role || "jury"}
+											</span>
+										</td>
+									</tr>
 								{/each}
 							</tbody>
 						</table>
@@ -570,7 +671,11 @@
 							step="0.1"
 							class:error={errors.votingWeight}
 						/>
-						<span class="weight-percentage">{(formData.votingWeight.community * 100).toFixed(0)}%</span>
+						<span class="weight-percentage"
+							>{(formData.votingWeight.community * 100).toFixed(
+								0,
+							)}%</span
+						>
 					</div>
 					<div class="weight-input">
 						<label for="juryWeight">Jury Gewicht</label>
@@ -583,7 +688,11 @@
 							step="0.1"
 							class:error={errors.votingWeight}
 						/>
-						<span class="weight-percentage">{(formData.votingWeight.jury * 100).toFixed(0)}%</span>
+						<span class="weight-percentage"
+							>{(formData.votingWeight.jury * 100).toFixed(
+								0,
+							)}%</span
+						>
 					</div>
 				</div>
 				{#if errors.votingWeight}
@@ -598,7 +707,11 @@
 				</SecondaryButton>
 				<PrimaryButton type="submit" disabled={saving}>
 					<Save size={20} />
-					<span>{saving ? 'Wird gespeichert...' : 'Änderungen speichern'}</span>
+					<span
+						>{saving
+							? "Wird gespeichert..."
+							: "Änderungen speichern"}</span
+					>
 				</PrimaryButton>
 			</div>
 		</form>
@@ -673,7 +786,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.competition-form {
@@ -941,18 +1056,18 @@
 	}
 
 	.role-badge.role-admin {
-		background: #FED7D7;
-		color: #9B2C2C;
+		background: #fed7d7;
+		color: #9b2c2c;
 	}
 
 	.role-badge.role-jury {
-		background: #BEE3F8;
-		color: #2C5282;
+		background: #bee3f8;
+		color: #2c5282;
 	}
 
 	.role-badge.role-user {
-		background: #E2E8F0;
-		color: #4A5568;
+		background: #e2e8f0;
+		color: #4a5568;
 	}
 
 	.no-results {

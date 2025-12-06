@@ -372,6 +372,59 @@ export async function deleteSubmission(submissionId, userId) {
 	return result;
 }
 
+export async function updateSubmission(submissionId, updates, userId) {
+	const submissions = await getCollection('submissions');
+
+	// Get submission to check ownership
+	const submission = await submissions.findOne({ _id: submissionId });
+
+	if (!submission) {
+		throw new Error('Submission nicht gefunden');
+	}
+
+	// Check if user owns the submission
+	if (submission.userId !== userId) {
+		throw new Error('Keine Berechtigung zum Bearbeiten dieser Submission');
+	}
+
+	// Check deadline
+	if (submission.competitionId) {
+		const competitions = await getCollection('competitions');
+		const competition = await competitions.findOne({ _id: submission.competitionId });
+
+		if (competition) {
+			const now = new Date();
+			const deadline = new Date(competition.deadline);
+
+			if (now > deadline) {
+				throw new Error('Die Deadline für diesen Wettbewerb ist bereits abgelaufen. Bearbeitung nicht mehr möglich.');
+			}
+		}
+	}
+
+	// Filter allowed updates
+	const allowedUpdates = {
+		title: updates.title,
+		description: updates.description,
+		'metadata.camera': updates.metadata?.camera,
+		'metadata.lens': updates.metadata?.lens,
+		'metadata.settings': updates.metadata?.settings,
+		updatedAt: new Date().toISOString()
+	};
+
+	// Remove undefined
+	Object.keys(allowedUpdates).forEach(key =>
+		allowedUpdates[key] === undefined && delete allowedUpdates[key]
+	);
+
+	const result = await submissions.updateOne(
+		{ _id: submissionId },
+		{ $set: allowedUpdates }
+	);
+
+	return result;
+}
+
 // ==================== JURY RATINGS ====================
 
 export async function saveJuryRating(ratingData) {

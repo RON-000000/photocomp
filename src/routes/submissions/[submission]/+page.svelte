@@ -25,6 +25,7 @@
 		ArrowLeft,
 		Trash2,
 		Award,
+		Edit3,
 	} from "lucide-svelte";
 	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
 
@@ -250,6 +251,10 @@
 					<Trash2 size={20} />
 					<span>{deleting ? "Löschen..." : "Beitrag löschen"}</span>
 				</button>
+				<a href="/submissions/{submissionId}/edit" class="edit-button">
+					<Edit3 size={20} />
+					<span>Beitrag bearbeiten</span>
+				</a>
 			{/if}
 		</div>
 
@@ -543,6 +548,27 @@
 	.delete-button:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.edit-button {
+		all: unset;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-sm) var(--spacing-md);
+		color: var(--color-text-secondary);
+		background: white;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-decoration: none;
+	}
+
+	.edit-button:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
+		background: var(--color-surface);
 	}
 
 	.submission-detail {

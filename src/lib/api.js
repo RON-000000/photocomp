@@ -124,6 +124,16 @@ export async function createSubmission(submissionData) {
 	return handleResponse(response);
 }
 
+export async function updateSubmission(submissionId, updates) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}`, {
+		method: 'PUT',
+		headers,
+		body: JSON.stringify(updates)
+	});
+	return handleResponse(response);
+}
+
 export async function voteOnSubmission(submissionId, userId) {
 	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions/${submissionId}/vote`, {

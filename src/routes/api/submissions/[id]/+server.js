@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getSubmissionById, deleteSubmission } from '$lib/server/models.js';
+import { getSubmissionById, deleteSubmission, updateSubmission } from '$lib/server/models.js';
 import { requireAuth, checkOwnership } from '$lib/server/auth.js';
 import { deleteImage } from '$lib/server/cloudinary.js';
 
@@ -15,6 +15,23 @@ export async function GET({ params }) {
 	} catch (error) {
 		console.error('Get submission error:', error);
 		return json({ error: error.message }, { status: 500 });
+	}
+}
+
+export async function PUT(event) {
+	try {
+		// Require authentication
+		const user = await requireAuth(event);
+
+		const submissionId = event.params.id;
+		const updates = await event.request.json();
+
+		await updateSubmission(submissionId, updates, user._id);
+
+		return json({ success: true });
+	} catch (error) {
+		console.error('Update submission error:', error);
+		return json({ error: error.message }, { status: error.status || 500 });
 	}
 }
 
