@@ -1,6 +1,8 @@
 <script>
 	import { uploadImage } from '$lib/api.js';
-	
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import { Plus } from 'lucide-svelte';
+
 	export let onUploadComplete = (imageUrl) => {};
 	export let currentImageUrl = '';
 	
@@ -70,10 +72,8 @@
 			{/if}
 		</div>
 	{/if}
-	
-	<button
-		type="button"
-		class="btn btn-secondary"
+
+	<SecondaryButton
 		on:click={triggerFileInput}
 		disabled={isUploading}
 	>
@@ -81,11 +81,13 @@
 			<span class="loading"></span>
 			Wird hochgeladen...
 		{:else if currentImageUrl}
-			✅ Bild ändern
+			<Plus size={16} />
+			<span>Bild ändern</span>
 		{:else}
-			📸 Bild auswählen
+			<Plus size={16} />
+			<span>Bild auswählen</span>
 		{/if}
-	</button>
+	</SecondaryButton>
 	
 	{#if uploadError}
 		<p class="error">{uploadError}</p>

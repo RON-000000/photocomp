@@ -4,6 +4,8 @@
 	import { currentUser, isAuthenticated } from '$lib/stores/auth0';
 	import { createCompetition, uploadImage, deleteUploadedImage } from '$lib/api.js';
 	import { Trophy, Calendar, Image, Users, Plus, X, Upload, Search } from 'lucide-svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let loading = false;
 	let uploadingImage = false;
@@ -242,9 +244,9 @@
 				<h1>Wettbewerb erstellen</h1>
 				<p>Erstellen Sie einen neuen Fotografie-Wettbewerb</p>
 			</div>
-			<button class="btn btn-secondary" on:click={handleCancel} disabled={loading}>
+			<SecondaryButton on:click={handleCancel} disabled={loading}>
 				Abbrechen
-			</button>
+			</SecondaryButton>
 		</header>
 
 		<form class="competition-form" on:submit={handleSubmit}>
@@ -426,10 +428,10 @@
 					</div>
 				{/each}
 
-				<button type="button" class="btn btn-secondary btn-add" on:click={addPrize}>
+				<SecondaryButton on:click={addPrize}>
 					<Plus size={18} />
 					<span>Preis hinzufügen</span>
-				</button>
+				</SecondaryButton>
 			</section>
 
 			<!-- Rules -->
@@ -456,10 +458,10 @@
 					</div>
 				{/each}
 
-				<button type="button" class="btn btn-secondary btn-add" on:click={addRule}>
+				<SecondaryButton on:click={addRule}>
 					<Plus size={18} />
 					<span>Regel hinzufügen</span>
-				</button>
+				</SecondaryButton>
 			</section>
 
 			<!-- Jury Selection -->
@@ -588,10 +590,10 @@
 
 			<!-- Submit -->
 			<div class="form-actions">
-				<button type="button" class="btn btn-secondary" on:click={handleCancel} disabled={loading}>
+				<SecondaryButton type="button" on:click={handleCancel} disabled={loading}>
 					Abbrechen
-				</button>
-				<button type="submit" class="btn btn-primary" disabled={loading}>
+				</SecondaryButton>
+				<PrimaryButton type="submit" disabled={loading}>
 					{#if loading}
 						<span class="loading"></span>
 						<span>Wird erstellt...</span>
@@ -599,7 +601,7 @@
 						<Trophy size={20} />
 						<span>Wettbewerb erstellen</span>
 					{/if}
-				</button>
+				</PrimaryButton>
 			</div>
 		</form>
 	</div>
@@ -759,10 +761,6 @@
 		background: var(--color-danger);
 		color: white;
 		border-color: var(--color-danger);
-	}
-
-	.btn-add {
-		margin-top: var(--spacing-sm);
 	}
 
 	.btn-sm {

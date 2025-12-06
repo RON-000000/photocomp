@@ -5,6 +5,7 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import { Filter } from 'lucide-svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let competitions = [];
 	let filter = 'active'; // all, active, voting, completed
@@ -59,9 +60,9 @@
 		{:else if error}
 			<div class="error-state">
 				<p>Fehler beim Laden: {error}</p>
-				<button class="btn btn-primary" on:click={loadCompetitions}>
+				<PrimaryButton on:click={loadCompetitions}>
 					Erneut versuchen
-				</button>
+				</PrimaryButton>
 			</div>
 		{:else}
 			<!-- Filters -->

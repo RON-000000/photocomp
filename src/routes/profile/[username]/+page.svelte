@@ -5,11 +5,12 @@
 	import { currentUser } from '$lib/stores/auth0';
 	import { getUserByUsername } from '$lib/api.js';
 	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
-	import { 
-		Calendar, 
-		MapPin, 
-		Link as LinkIcon, 
-		Trophy, 
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import {
+		Calendar,
+		MapPin,
+		Link as LinkIcon,
+		Trophy,
 		Image as ImageIcon,
 		Edit
 	} from 'lucide-svelte';
@@ -95,10 +96,12 @@
 			
 			<!-- Edit Button - NEU -->
 			{#if $currentUser && $currentUser.username === user.username}
-				<button class="btn btn-primary edit-profile-btn" on:click={() => goto('/profile/edit')}>
-					<Edit size={18} />
-					Profil bearbeiten
-				</button>
+				<div class="edit-button-wrapper">
+					<PrimaryButton on:click={() => goto('/profile/edit')}>
+						<Edit size={18} />
+						Profil bearbeiten
+					</PrimaryButton>
+				</div>
 			{/if}
 		</div>
 	</div>
@@ -398,8 +401,8 @@
 		margin: 0;
 	}
 
-	.edit-profile-btn {
-		margin-top: var(--spacing-lg);
+	.edit-button-wrapper {
+		margin-top: var(--spacing-2xl);
 	}
 	
 	/* Mobile Optimizations */

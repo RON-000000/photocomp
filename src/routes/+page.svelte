@@ -3,6 +3,7 @@
 	import { getCompetitions } from '$lib/api.js';
 	import CompetitionCard from '$lib/components/CompetitionCard.svelte';
 	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 	
 	let activeCompetitions = [];
 	let loading = true;
@@ -33,9 +34,9 @@
 			</p>
 			
 			<div class="hero-actions">
-				<a href="/competitions" class="btn btn-primary">
+				<PrimaryButton href="/competitions">
 					Wettbewerbe entdecken
-				</a>
+				</PrimaryButton>
 				<SecondaryButton href="/submit">
 					Foto einreichen
 				</SecondaryButton>

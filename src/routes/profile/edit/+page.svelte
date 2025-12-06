@@ -4,6 +4,8 @@
 	import { currentUser, refreshUserData } from '$lib/stores/auth0';
 	import { User, MapPin, Link as LinkIcon, FileText, Camera } from 'lucide-svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let loading = false;
 	let formData = {
@@ -194,16 +196,14 @@
 			
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<button
+				<SecondaryButton
 					type="button"
-					class="btn btn-secondary"
 					on:click={() => goto(`/profile/${$currentUser.username}`)}
 				>
 					Abbrechen
-				</button>
-				<button
+				</SecondaryButton>
+				<PrimaryButton
 					type="submit"
-					class="btn btn-primary"
 					disabled={loading}
 				>
 					{#if loading}
@@ -213,7 +213,7 @@
 						<User size={20} />
 						Änderungen speichern
 					{/if}
-				</button>
+				</PrimaryButton>
 			</div>
 		</form>
 	</div>

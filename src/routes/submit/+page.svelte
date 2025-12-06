@@ -5,6 +5,8 @@
 	import { currentUser } from '$lib/stores/auth0';
 	import { getCompetitions, createSubmission, deleteUploadedImage } from '$lib/api.js';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let competitions = [];
 	let selectedCompetition = $page.url.searchParams.get('competition') || '';
@@ -122,7 +124,7 @@ async function handleSubmit() {
 		<div class="login-prompt">
 			<h3>Anmeldung erforderlich</h3>
 			<p>Du musst eingeloggt sein, um Fotos einzureichen.</p>
-			<button class="btn btn-primary">Anmelden</button>
+			<PrimaryButton>Anmelden</PrimaryButton>
 		</div>
 	{:else}
 		<form class="submission-form" on:submit|preventDefault={handleSubmit}>
@@ -221,10 +223,11 @@ async function handleSubmit() {
 
 			<!-- Submit Button -->
 			<div class="form-actions">
-				<a href="/competitions" class="btn btn-secondary">Abbrechen</a>
-				<button
+				<SecondaryButton href="/competitions">
+					Abbrechen
+				</SecondaryButton>
+				<PrimaryButton
 					type="submit"
-					class="btn btn-primary"
 					disabled={isSubmitting || !imageUrl}
 				>
 					{#if isSubmitting}
@@ -233,7 +236,7 @@ async function handleSubmit() {
 					{:else}
 						Foto einreichen
 					{/if}
-				</button>
+				</PrimaryButton>
 			</div>
 		</form>
 	{/if}

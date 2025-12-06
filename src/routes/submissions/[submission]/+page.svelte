@@ -6,6 +6,7 @@
 	import { formatDate } from '$lib/data/mockData';
 	import { currentUser } from '$lib/stores/auth0.js';
 	import { ThumbsUp, Star, MessageCircle, Camera, Aperture, Calendar, User, Send, ArrowLeft, Trash2 } from 'lucide-svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let submission = null;
 	let competition = null;
@@ -179,7 +180,7 @@
 		<div class="error-state">
 			<h2>Fehler</h2>
 			<p>{error}</p>
-			<button on:click={goBack} class="btn btn-primary">Zurück</button>
+			<PrimaryButton on:click={goBack}>Zurück</PrimaryButton>
 		</div>
 	</div>
 {:else if submission}

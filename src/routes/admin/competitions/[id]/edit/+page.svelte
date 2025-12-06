@@ -5,6 +5,8 @@
 	import { currentUser, isAuthenticated } from '$lib/stores/auth0';
 	import { getCompetitionById, updateCompetition, uploadImage } from '$lib/api.js';
 	import { Trophy, Calendar, Image, Users, Plus, X, Upload, Search, Save, ArrowLeft } from 'lucide-svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let loading = true;
 	let saving = false;
@@ -68,7 +70,9 @@
 				prizes: Array.isArray(competition.prizes) && competition.prizes.length > 0 ? competition.prizes : [''],
 				rules: Array.isArray(competition.rules) && competition.rules.length > 0
 					? competition.rules
-					: (competition.rules ? [competition.rules] : ['']),
+					: (competition.rules && typeof competition.rules === 'string'
+						? competition.rules.split('\n').filter(r => r.trim())
+						: ['']),
 				juryMembers: competition.juryMembers || [],
 				votingWeight: competition.votingWeight || { community: 0.5, jury: 0.5 },
 				status: competition.status || 'active'
@@ -300,9 +304,7 @@
 						</div>
 					{/if}
 
-					<button
-						type="button"
-						class="btn btn-secondary"
+					<SecondaryButton
 						on:click={triggerFileInput}
 						disabled={uploadingImage}
 					>
@@ -310,11 +312,13 @@
 							<span class="loading"></span>
 							Wird hochgeladen...
 						{:else if heroImagePreview}
-							📸 Bild ändern
+							<Plus size={16} />
+							<span>Bild ändern</span>
 						{:else}
-							📸 Bild hochladen
+							<Plus size={16} />
+							<span>Bild hochladen</span>
 						{/if}
-					</button>
+					</SecondaryButton>
 
 					{#if uploadSuccess}
 						<p class="success">✅ Bild erfolgreich hochgeladen!</p>
@@ -433,10 +437,10 @@
 							</button>
 						</div>
 					{/each}
-					<button type="button" on:click={addPrize} class="add-button">
+					<SecondaryButton on:click={addPrize}>
 						<Plus size={16} />
 						<span>Preis hinzufügen</span>
-					</button>
+					</SecondaryButton>
 				</div>
 			</div>
 
@@ -446,20 +450,20 @@
 				<div class="dynamic-list">
 					{#each formData.rules as rule, index}
 						<div class="list-item">
-							<textarea
+							<input
+								type="text"
 								bind:value={formData.rules[index]}
 								placeholder={`Regel ${index + 1}`}
-								rows="2"
-							></textarea>
+							/>
 							<button type="button" on:click={() => removeRule(index)} class="remove-button">
 								<X size={16} />
 							</button>
 						</div>
 					{/each}
-					<button type="button" on:click={addRule} class="add-button">
+					<SecondaryButton on:click={addRule}>
 						<Plus size={16} />
 						<span>Regel hinzufügen</span>
-					</button>
+					</SecondaryButton>
 				</div>
 			</div>
 
@@ -589,13 +593,13 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<button type="button" on:click={handleCancel} class="cancel-button">
+				<SecondaryButton type="button" on:click={handleCancel}>
 					Abbrechen
-				</button>
-				<button type="submit" disabled={saving} class="submit-button">
+				</SecondaryButton>
+				<PrimaryButton type="submit" disabled={saving}>
 					<Save size={20} />
 					<span>{saving ? 'Wird gespeichert...' : 'Änderungen speichern'}</span>
-				</button>
+				</PrimaryButton>
 			</div>
 		</form>
 	{/if}
@@ -823,26 +827,6 @@
 		background: #c53030;
 	}
 
-	.add-button {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		padding: var(--spacing-sm) var(--spacing-md);
-		background: white;
-		color: var(--color-primary);
-		border: 1px dashed var(--color-primary);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		font-weight: 600;
-		transition: all 0.2s ease;
-		align-self: flex-start;
-	}
-
-	.add-button:hover {
-		background: var(--color-surface);
-	}
-
 	.jury-search {
 		display: flex;
 		align-items: center;
@@ -1014,45 +998,6 @@
 		border-top: 1px solid var(--color-border);
 	}
 
-	.cancel-button {
-		all: unset;
-		padding: var(--spacing-sm) var(--spacing-xl);
-		background: white;
-		color: var(--color-text-secondary);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.cancel-button:hover {
-		background: var(--color-surface);
-	}
-
-	.submit-button {
-		all: unset;
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		padding: var(--spacing-sm) var(--spacing-xl);
-		background: var(--color-primary);
-		color: white;
-		border-radius: var(--radius-md);
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.submit-button:hover:not(:disabled) {
-		background: var(--color-primary-dark);
-	}
-
-	.submit-button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
 	@media (max-width: 768px) {
 		.form-grid {
 			grid-template-columns: 1fr;
@@ -1064,12 +1009,6 @@
 
 		.form-actions {
 			flex-direction: column;
-		}
-
-		.cancel-button,
-		.submit-button {
-			width: 100%;
-			justify-content: center;
 		}
 	}
 </style>

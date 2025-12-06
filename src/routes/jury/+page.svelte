@@ -7,6 +7,7 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import StatCard from '$lib/components/StatCard.svelte';
+	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
 	let competitions = [];
 	let loading = true;
@@ -86,9 +87,9 @@
 		{:else if error}
 			<div class="error-state">
 				<p>Fehler beim Laden: {error}</p>
-				<button class="btn btn-primary" on:click={loadCompetitions}>
+				<PrimaryButton on:click={loadCompetitions}>
 					Erneut versuchen
-				</button>
+				</PrimaryButton>
 			</div>
 		{:else}
 			<!-- Stats Grid -->
