@@ -65,8 +65,10 @@
 				startDate: competition.startDate ? competition.startDate.split('T')[0] : '',
 				deadline: competition.deadline ? competition.deadline.split('T')[0] : '',
 				imageUrl: competition.imageUrl || '',
-				prizes: competition.prizes && competition.prizes.length > 0 ? competition.prizes : [''],
-				rules: competition.rules && competition.rules.length > 0 ? competition.rules : [''],
+				prizes: Array.isArray(competition.prizes) && competition.prizes.length > 0 ? competition.prizes : [''],
+				rules: Array.isArray(competition.rules) && competition.rules.length > 0
+					? competition.rules
+					: (competition.rules ? [competition.rules] : ['']),
 				juryMembers: competition.juryMembers || [],
 				votingWeight: competition.votingWeight || { community: 0.5, jury: 0.5 },
 				status: competition.status || 'active'
@@ -137,8 +139,8 @@
 			return;
 		}
 
-		if (file.size > 10 * 1024 * 1024) {
-			alert('Bild ist zu groß. Maximum 10MB erlaubt.');
+		if (file.size > 100 * 1024 * 1024) {
+			alert('Bild ist zu groß. Maximum 100MB erlaubt.');
 			return;
 		}
 

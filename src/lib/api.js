@@ -168,6 +168,18 @@ export async function uploadImage(file, folder = 'submissions') {
 	return handleResponse(response);
 }
 
+// ==================== IMAGE CLEANUP ====================
+
+export async function deleteUploadedImage(imageUrl) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/upload/delete`, {
+		method: 'POST',
+		headers,
+		body: JSON.stringify({ imageUrl })
+	});
+	return handleResponse(response);
+}
+
 // ==================== SEED ====================
 
 export async function seedDatabase() {

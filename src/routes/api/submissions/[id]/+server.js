@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getSubmissionById, deleteSubmission } from '$lib/server/models.js';
 import { requireAuth, checkOwnership } from '$lib/server/auth.js';
+import { deleteImage } from '$lib/server/cloudinary.js';
 
 export async function GET({ params }) {
 	try {
@@ -34,6 +35,12 @@ export async function DELETE(event) {
 			return json({ error: 'Keine Berechtigung zum Löschen dieser Submission' }, { status: 403 });
 		}
 
+		// Delete image from Cloudinary first
+		if (submission.imageUrl) {
+			await deleteImage(submission.imageUrl);
+		}
+
+		// Delete submission from database
 		await deleteSubmission(event.params.id, user._id);
 
 		return json({ success: true, message: 'Submission erfolgreich gelöscht' });

@@ -52,8 +52,14 @@ export const CompetitionCreateSchema = z.object({
 		.transform(val => new Date(val).toISOString())
 		.optional(),
 
+	// Support both heroImage and imageUrl (different naming in frontend/backend)
 	heroImage: z.string()
 		.url('Ungültige Hero-Image URL')
+		.optional()
+		.or(z.literal('')),
+
+	imageUrl: z.string()
+		.url('Ungültige Image URL')
 		.optional()
 		.or(z.literal('')),
 
@@ -208,7 +214,7 @@ export const JuryRatingSchema = z.object({
 
 export const ImageUploadSchema = z.object({
 	size: z.number()
-		.max(10 * 1024 * 1024, 'Bild darf maximal 10MB groß sein'),
+		.max(100 * 1024 * 1024, 'Bild darf maximal 100MB groß sein'),
 
 	type: z.string()
 		.refine(

@@ -1,8 +1,8 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { currentUser, isAuthenticated } from '$lib/stores/auth0';
-	import { createCompetition, uploadImage } from '$lib/api.js';
+	import { createCompetition, uploadImage, deleteUploadedImage } from '$lib/api.js';
 	import { Trophy, Calendar, Image, Users, Plus, X, Upload, Search } from 'lucide-svelte';
 
 	let loading = false;
@@ -12,6 +12,7 @@
 	let jurySearchQuery = '';
 	let heroImageFile = null;
 	let heroImagePreview = null;
+	let competitionCreated = false; // Track if competition was successfully created
 
 	// Form data
 	let formData = {
@@ -98,9 +99,9 @@
 			return;
 		}
 
-		// Validate file size (max 10MB)
-		if (file.size > 10 * 1024 * 1024) {
-			alert('Bild ist zu groß. Maximum 10MB erlaubt.');
+		// Validate file size (max 100MB)
+		if (file.size > 100 * 1024 * 1024) {
+			alert('Bild ist zu groß. Maximum 100MB erlaubt.');
 			return;
 		}
 
@@ -196,6 +197,7 @@
 			};
 
 			const competition = await createCompetition(cleanedData);
+			competitionCreated = true; // Mark as successfully created
 			alert('Wettbewerb erfolgreich erstellt!');
 			goto(`/competitions/${competition._id}`);
 		} catch (error) {
@@ -206,11 +208,31 @@
 		}
 	}
 
-	function handleCancel() {
+	async function handleCancel() {
 		if (confirm('Möchten Sie den Vorgang abbrechen? Alle Änderungen gehen verloren.')) {
+			// Delete uploaded hero image if exists
+			if (formData.imageUrl) {
+				try {
+					await deleteUploadedImage(formData.imageUrl);
+				} catch (error) {
+					console.error('Error deleting uploaded image:', error);
+				}
+			}
 			goto('/admin');
 		}
 	}
+
+	// Cleanup on component destroy (page navigation/refresh)
+	onDestroy(async () => {
+		// If there's an uploaded image but competition was not created, clean it up
+		if (formData.imageUrl && !competitionCreated) {
+			try {
+				await deleteUploadedImage(formData.imageUrl);
+			} catch (error) {
+				console.error('Error cleaning up image:', error);
+			}
+		}
+	});
 </script>
 
 <div class="create-page">
@@ -323,8 +345,8 @@
 							<div class="upload-placeholder">
 								<Upload size={32} />
 								<p>Klicken Sie hier, um ein Bild auszuwählen</p>
-								<span class="help-text">JPEG, PNG oder WebP (max 10MB)</span>
-								<span class="help-text">Bild wird automatisch komprimiert und hochgeladen</span>
+								<span class="help-text">JPEG, PNG oder WebP (max 100MB)</span>
+								<span class="help-text">Bild wird komprimiert und hochgeladen</span>
 							</div>
 						</label>
 					{/if}

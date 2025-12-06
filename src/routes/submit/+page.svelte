@@ -1,11 +1,11 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { currentUser } from '$lib/stores/auth0';
-	import { getCompetitions, createSubmission } from '$lib/api.js';
+	import { getCompetitions, createSubmission, deleteUploadedImage } from '$lib/api.js';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
-	
+
 	let competitions = [];
 	let selectedCompetition = $page.url.searchParams.get('competition') || '';
 	let title = '';
@@ -16,6 +16,7 @@
 	let settings = '';
 	let isSubmitting = false;
 	let loading = true;
+	let submissionCreated = false; // Track if submission was successfully created
 
 	onMount(async () => {
 		try {
@@ -65,6 +66,7 @@ async function handleSubmit() {
 		};
 
 		await createSubmission(submissionData);
+		submissionCreated = true; // Mark as successfully created
 		alert('Submission erfolgreich eingereicht! 🎉');
 
 		// Reset form
@@ -84,6 +86,18 @@ async function handleSubmit() {
 		isSubmitting = false;
 	}
 }
+
+	// Cleanup on component destroy (page navigation/refresh)
+	onDestroy(async () => {
+		// If there's an uploaded image but submission was not created, clean it up
+		if (imageUrl && !submissionCreated) {
+			try {
+				await deleteUploadedImage(imageUrl);
+			} catch (error) {
+				console.error('Error cleaning up image:', error);
+			}
+		}
+	});
 </script>
 
 <svelte:head>
@@ -138,7 +152,7 @@ async function handleSubmit() {
 						onUploadComplete={handleImageUpload}
 						currentImageUrl={imageUrl}
 					/>
-					<span class="help-text">Erlaubte Formate: JPEG, PNG, WebP (max. 10MB, wird automatisch komprimiert)</span>
+					<span class="help-text">Erlaubte Formate: JPEG, PNG, WebP (max. 100MB, wird komprimiert)</span>
 				</div>
 			</section>
 

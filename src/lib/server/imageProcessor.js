@@ -51,23 +51,23 @@ export async function compressImage(buffer) {
  * @returns {Promise<Buffer>} - File buffer
  */
 export async function validateAndProcessImage(file) {
-	const MAX_SIZE_MB = 10; // Allow up to 10MB upload (will be compressed to 5MB)
+	const MAX_SIZE_MB = 100; // Allow up to 100MB upload (will be compressed to 5MB)
 	const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-	
+
 	// Check file type
 	if (!ALLOWED_TYPES.includes(file.type)) {
 		throw new Error('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
 	}
-	
+
 	// Check file size
 	if (file.size > MAX_SIZE_MB * 1024 * 1024) {
 		throw new Error(`File too large. Maximum size is ${MAX_SIZE_MB}MB.`);
 	}
-	
+
 	// Convert to buffer
 	const arrayBuffer = await file.arrayBuffer();
 	const buffer = Buffer.from(arrayBuffer);
-	
+
 	// Compress
 	return await compressImage(buffer);
 }

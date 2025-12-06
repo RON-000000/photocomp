@@ -250,7 +250,7 @@
 						</h3>
 
 						<ul class="rules-list">
-							{#each competition.rules as rule}
+							{#each (Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules.split('\n').filter(r => r.trim()) : []) as rule}
 								<li>{rule}</li>
 							{/each}
 						</ul>
@@ -426,7 +426,7 @@
 					</h3>
 					
 					<ul class="rules-list">
-						{#each competition.rules as rule}
+						{#each (Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules.split('\n').filter(r => r.trim()) : []) as rule}
 							<li>{rule}</li>
 						{/each}
 					</ul>
@@ -1082,20 +1082,30 @@
 		.admin-actions {
 			flex-direction: column;
 			width: 100%;
+			max-width: 100%;
 			gap: var(--spacing-xs);
+			box-sizing: border-box;
 		}
 
 		.admin-button {
 			width: 100%;
+			max-width: 100%;
 			justify-content: center;
 			padding: var(--spacing-sm) var(--spacing-md);
 			font-size: 0.8125rem;
+			box-sizing: border-box;
 		}
 
 		.admin-button span {
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
+		}
+
+		.hero-content {
+			max-width: 100%;
+			padding-left: var(--spacing-md);
+			padding-right: var(--spacing-md);
 		}
 	}
 </style>

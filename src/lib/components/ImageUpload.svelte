@@ -12,11 +12,11 @@
 	async function handleFileSelect(event) {
 		const file = event.target.files[0];
 		if (!file) return;
-		
-		// Validate file size (max 10MB before compression)
-		const maxSize = 10 * 1024 * 1024; // 10MB
+
+		// Validate file size (max 100MB before compression)
+		const maxSize = 100 * 1024 * 1024; // 100MB
 		if (file.size > maxSize) {
-			uploadError = 'Datei zu gross! Maximum 10MB.';
+			uploadError = 'Datei zu gross! Maximum 100MB.';
 			return;
 		}
 		
