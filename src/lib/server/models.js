@@ -10,7 +10,7 @@ function generateId() {
 
 export async function createUser(userData) {
 	const users = await getCollection('users');
-	
+
 	const user = {
 		_id: generateId(),
 		username: userData.username,
@@ -27,7 +27,7 @@ export async function createUser(userData) {
 		portfolio: [],
 		createdAt: new Date()
 	};
-	
+
 	await users.insertOne(user);
 	return user;
 }
@@ -54,7 +54,7 @@ export async function updateUserStats(userId, updates) {
 
 export async function createCompetition(competitionData) {
 	const competitions = await getCollection('competitions');
-	
+
 	const competition = {
 		_id: generateId(),
 		title: competitionData.title,
@@ -76,7 +76,7 @@ export async function createCompetition(competitionData) {
 		winners: null,
 		createdAt: new Date()
 	};
-	
+
 	await competitions.insertOne(competition);
 	return competition;
 }
@@ -109,8 +109,8 @@ export async function getAllCompetitions() {
 
 export async function getActiveCompetitions() {
 	const competitions = await getCollection('competitions');
-	return await competitions.find({ 
-		status: { $in: ['active', 'voting'] } 
+	return await competitions.find({
+		status: { $in: ['active', 'voting'] }
 	}).sort({ createdAt: -1 }).toArray();
 }
 
@@ -205,7 +205,7 @@ export async function checkAndUpdateCompetitionStatus(competitionId) {
 
 export async function createSubmission(submissionData) {
 	const submissions = await getCollection('submissions');
-	
+
 	const submission = {
 		_id: generateId(),
 		competitionId: submissionData.competitionId,
@@ -222,15 +222,15 @@ export async function createSubmission(submissionData) {
 		metadata: submissionData.metadata || {},
 		createdAt: new Date().toISOString()
 	};
-	
+
 	await submissions.insertOne(submission);
-	
+
 	// Update competition stats
 	await incrementCompetitionStats(submissionData.competitionId, 'submissionCount');
-	
+
 	// Update user stats
 	await updateUserStats(submissionData.userId, { 'stats.submissions': 1 });
-	
+
 	return submission;
 }
 
@@ -296,7 +296,7 @@ export async function addVote(submissionId) {
 
 export async function addComment(submissionId, commentData) {
 	const submissions = await getCollection('submissions');
-	
+
 	const comment = {
 		id: generateId(),
 		userId: commentData.userId,
@@ -304,13 +304,39 @@ export async function addComment(submissionId, commentData) {
 		text: commentData.text,
 		createdAt: new Date().toISOString()
 	};
-	
+
 	await submissions.updateOne(
 		{ _id: submissionId },
 		{ $push: { comments: comment } }
 	);
-	
+
 	return comment;
+}
+
+export async function deleteComment(submissionId, commentId, userId, userRole) {
+	const submissions = await getCollection('submissions');
+
+	const submission = await submissions.findOne({ _id: submissionId });
+	if (!submission) {
+		throw new Error('Submission nicht gefunden');
+	}
+
+	const comment = submission.comments.find(c => c.id === commentId);
+	if (!comment) {
+		throw new Error('Kommentar nicht gefunden');
+	}
+
+	// Check permissions: Owner of comment OR Admin OR Jury
+	if (comment.userId !== userId && userRole !== 'admin' && userRole !== 'jury') {
+		throw new Error('Keine Berechtigung zum Löschen dieses Kommentars');
+	}
+
+	const result = await submissions.updateOne(
+		{ _id: submissionId },
+		{ $pull: { comments: { id: commentId } } }
+	);
+
+	return result;
 }
 
 export async function deleteSubmission(submissionId, userId) {
@@ -413,27 +439,27 @@ export async function seedMockData() {
 	// Check if data already exists
 	const users = await getCollection('users');
 	const existingUsers = await users.countDocuments();
-	
+
 	if (existingUsers > 0) {
 		return { message: 'Database already seeded' };
 	}
-	
+
 	// Import seed data
 	const { seedUsers, seedCompetitions, seedSubmissions } = await import('$lib/data/seedData.js');
-	
+
 	// Insert users
 	const usersCollection = await getCollection('users');
 	await usersCollection.insertMany(seedUsers);
-	
+
 	// Insert competitions
 	const competitionsCollection = await getCollection('competitions');
 	await competitionsCollection.insertMany(seedCompetitions);
-	
+
 	// Insert submissions
 	const submissionsCollection = await getCollection('submissions');
 	await submissionsCollection.insertMany(seedSubmissions);
-	
-	return { 
+
+	return {
 		message: 'Database seeded successfully',
 		counts: {
 			users: seedUsers.length,
@@ -445,35 +471,35 @@ export async function seedMockData() {
 
 export async function addVoteWithUser(submissionId, userId) {
 	const submissions = await getCollection('submissions');
-	
+
 	// Check if user already voted
 	const submission = await submissions.findOne({ _id: submissionId });
 	if (!submission) {
 		throw new Error('Submission nicht gefunden');
 	}
-	
+
 	if (submission.votedBy && submission.votedBy.includes(userId)) {
 		throw new Error('Du hast bereits für diese Submission gevotet');
 	}
-	
+
 	// Add vote
 	const result = await submissions.updateOne(
 		{ _id: submissionId },
-		{ 
+		{
 			$inc: { 'votes.community': 1 },
 			$push: { votedBy: userId }
 		}
 	);
-	
+
 	return result;
 }
 
 export async function hasUserVoted(submissionId, userId) {
 	const submissions = await getCollection('submissions');
 	const submission = await submissions.findOne({ _id: submissionId });
-	
+
 	if (!submission) return false;
-	
+
 	return submission.votedBy && submission.votedBy.includes(userId);
 }
 
@@ -521,7 +547,7 @@ export async function getUserByUsername(username) {
 
 export async function updateUserProfile(userId, updates) {
 	const users = await getCollection('users');
-	
+
 	const allowedUpdates = {
 		name: updates.name,
 		bio: updates.bio,
@@ -529,21 +555,21 @@ export async function updateUserProfile(userId, updates) {
 		website: updates.website,
 		avatar: updates.avatar
 	};
-	
+
 	// Remove undefined values
-	Object.keys(allowedUpdates).forEach(key => 
+	Object.keys(allowedUpdates).forEach(key =>
 		allowedUpdates[key] === undefined && delete allowedUpdates[key]
 	);
-	
+
 	const result = await users.updateOne(
 		{ _id: userId },
 		{ $set: allowedUpdates }
 	);
-	
+
 	if (result.matchedCount === 0) {
 		throw new Error('User nicht gefunden');
 	}
-	
+
 	return await users.findOne({ _id: userId });
 }
 
@@ -559,20 +585,20 @@ export async function getUserSubmissions(userId) {
 
 export async function updateUserRole(userId, role) {
 	const users = await getCollection('users');
-	
+
 	if (!['user', 'admin', 'jury'].includes(role)) {
 		throw new Error('Ungültige Rolle');
 	}
-	
+
 	const result = await users.updateOne(
 		{ _id: userId },
 		{ $set: { role } }
 	);
-	
+
 	if (result.matchedCount === 0) {
 		throw new Error('User nicht gefunden');
 	}
-	
+
 	return await users.findOne({ _id: userId });
 }
 
@@ -597,12 +623,12 @@ export async function getAdminStats() {
 	const users = await getCollection('users');
 	const competitions = await getCollection('competitions');
 	const submissions = await getCollection('submissions');
-	
+
 	const totalUsers = await users.countDocuments();
 	const totalCompetitions = await competitions.countDocuments();
 	const totalSubmissions = await submissions.countDocuments();
 	const activeCompetitions = await competitions.countDocuments({ status: 'active' });
-	
+
 	// Get recent users
 	const recentUsers = await users
 		.find({})
@@ -610,7 +636,7 @@ export async function getAdminStats() {
 		.sort({ createdAt: -1 })
 		.limit(5)
 		.toArray();
-	
+
 	return {
 		totalUsers,
 		totalCompetitions,

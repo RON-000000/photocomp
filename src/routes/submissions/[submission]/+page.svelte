@@ -1,12 +1,32 @@
 <script>
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { getSubmissionById, voteOnSubmission, addCommentToSubmission, checkIfUserVoted, deleteSubmission, getCompetitionById } from '$lib/api.js';
-	import { formatDate } from '$lib/data/mockData';
-	import { currentUser } from '$lib/stores/auth0.js';
-	import { ThumbsUp, Star, MessageCircle, Camera, Aperture, Calendar, User, Send, ArrowLeft, Trash2 } from 'lucide-svelte';
-	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import { onMount } from "svelte";
+	import { page } from "$app/stores";
+	import { goto } from "$app/navigation";
+	import {
+		getSubmissionById,
+		voteOnSubmission,
+		addCommentToSubmission,
+		checkIfUserVoted,
+		deleteSubmission,
+		getCompetitionById,
+		deleteComment,
+	} from "$lib/api.js";
+	import { formatDate } from "$lib/data/mockData";
+	import { currentUser } from "$lib/stores/auth0.js";
+	import {
+		ThumbsUp,
+		Star,
+		MessageCircle,
+		Camera,
+		Aperture,
+		Calendar,
+		User,
+		Send,
+		ArrowLeft,
+		Trash2,
+		Award,
+	} from "lucide-svelte";
+	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
 
 	let submission = null;
 	let competition = null;
@@ -14,20 +34,26 @@
 	let error = null;
 	let hasVoted = false;
 	let voting = false;
-	let commentText = '';
+	let commentText = "";
 	let submittingComment = false;
 	let deleting = false;
 
 	$: submissionId = $page.params.submission;
-	$: canDelete = submission && $currentUser && competition && (submission.userId === $currentUser._id || submission.userId === $currentUser.sub) && new Date(competition.deadline) > new Date();
+	$: canDelete =
+		submission &&
+		$currentUser &&
+		competition &&
+		(submission.userId === $currentUser._id ||
+			submission.userId === $currentUser.sub) &&
+		new Date(competition.deadline) > new Date();
 	$: {
 		if (submission && $currentUser && competition) {
-			console.log('Debug canDelete:', {
+			console.log("Debug canDelete:", {
 				submissionUserId: submission.userId,
 				currentUserId: $currentUser._id,
 				canDelete: canDelete,
 				deadline: competition.deadline,
-				isBeforeDeadline: new Date(competition.deadline) > new Date()
+				isBeforeDeadline: new Date(competition.deadline) > new Date(),
 			});
 		}
 	}
@@ -46,24 +72,29 @@
 			// Load competition to check deadline
 			if (submission && submission.competitionId) {
 				try {
-					competition = await getCompetitionById(submission.competitionId);
+					competition = await getCompetitionById(
+						submission.competitionId,
+					);
 				} catch (err) {
-					console.error('Error loading competition:', err);
+					console.error("Error loading competition:", err);
 				}
 			}
 
 			// Check if current user has voted
 			if ($currentUser && submission) {
 				try {
-					const result = await checkIfUserVoted(submissionId, $currentUser._id);
+					const result = await checkIfUserVoted(
+						submissionId,
+						$currentUser._id,
+					);
 					hasVoted = result.hasVoted;
 				} catch (err) {
-					console.error('Error checking vote:', err);
+					console.error("Error checking vote:", err);
 				}
 			}
 		} catch (err) {
 			error = err.message;
-			console.error('Error loading submission:', err);
+			console.error("Error loading submission:", err);
 		} finally {
 			loading = false;
 		}
@@ -71,12 +102,12 @@
 
 	async function handleVote() {
 		if (!$currentUser) {
-			alert('Bitte logge dich ein, um zu voten!');
+			alert("Bitte logge dich ein, um zu voten!");
 			return;
 		}
 
 		if (hasVoted) {
-			alert('Du hast bereits für diese Submission gevotet!');
+			alert("Du hast bereits für diese Submission gevotet!");
 			return;
 		}
 
@@ -85,14 +116,14 @@
 		try {
 			await voteOnSubmission(submissionId, $currentUser._id);
 			hasVoted = true;
-			
+
 			// Reload submission to get updated vote count
 			submission = await getSubmissionById(submissionId);
-			
-			alert('Vote erfolgreich! ⭐');
+
+			alert("Vote erfolgreich! ⭐");
 		} catch (err) {
-			console.error('Error voting:', err);
-			alert('Fehler beim Voten: ' + err.message);
+			console.error("Error voting:", err);
+			alert("Fehler beim Voten: " + err.message);
 		} finally {
 			voting = false;
 		}
@@ -100,12 +131,12 @@
 
 	async function handleCommentSubmit() {
 		if (!$currentUser) {
-			alert('Bitte logge dich ein, um zu kommentieren!');
+			alert("Bitte logge dich ein, um zu kommentieren!");
 			return;
 		}
 
 		if (!commentText.trim()) {
-			alert('Bitte gib einen Kommentar ein!');
+			alert("Bitte gib einen Kommentar ein!");
 			return;
 		}
 
@@ -115,31 +146,49 @@
 			const commentData = {
 				userId: $currentUser._id,
 				username: $currentUser.username,
-				text: commentText.trim()
+				text: commentText.trim(),
 			};
 
 			await addCommentToSubmission(submissionId, commentData);
-			
+
 			// Reload submission to get updated comments
 			submission = await getSubmissionById(submissionId);
-			commentText = '';
-			
-			alert('Kommentar erfolgreich hinzugefügt! 💬');
+			commentText = "";
+
+			alert("Kommentar erfolgreich hinzugefügt! 💬");
 		} catch (err) {
-			console.error('Error submitting comment:', err);
-			alert('Fehler beim Kommentieren: ' + err.message);
+			console.error("Error submitting comment:", err);
+			alert("Fehler beim Kommentieren: " + err.message);
 		} finally {
 			submittingComment = false;
 		}
 	}
 
+	async function handleDeleteComment(commentId) {
+		if (!confirm("Kommentar wirklich löschen?")) return;
+
+		try {
+			await deleteComment(submissionId, commentId);
+			// Reload submission to update comments
+			submission = await getSubmissionById(submissionId);
+			alert("Kommentar gelöscht.");
+		} catch (err) {
+			console.error("Error deleting comment:", err);
+			alert("Fehler beim Löschen: " + err.message);
+		}
+	}
+
 	async function handleDelete() {
 		if (!$currentUser) {
-			alert('Bitte logge dich ein!');
+			alert("Bitte logge dich ein!");
 			return;
 		}
 
-		if (!confirm('Möchtest du diese Submission wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+		if (
+			!confirm(
+				"Möchtest du diese Submission wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+			)
+		) {
 			return;
 		}
 
@@ -147,11 +196,11 @@
 
 		try {
 			await deleteSubmission(submissionId, $currentUser._id);
-			alert('Submission erfolgreich gelöscht! 🗑️');
+			alert("Submission erfolgreich gelöscht! 🗑️");
 			goto(`/competitions/${submission.competitionId}`);
 		} catch (err) {
-			console.error('Error deleting submission:', err);
-			alert('Fehler beim Löschen: ' + err.message);
+			console.error("Error deleting submission:", err);
+			alert("Fehler beim Löschen: " + err.message);
 		} finally {
 			deleting = false;
 		}
@@ -161,13 +210,13 @@
 		if (window.history.length > 1) {
 			history.back();
 		} else {
-			goto('/competitions');
+			goto("/competitions");
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>{submission?.title || 'Submission'} - PhotoZürich</title>
+	<title>{submission?.title || "Submission"} - PhotoZürich</title>
 </svelte:head>
 
 {#if loading}
@@ -193,9 +242,13 @@
 			</button>
 
 			{#if canDelete}
-				<button on:click={handleDelete} class="delete-button" disabled={deleting}>
+				<button
+					on:click={handleDelete}
+					class="delete-button"
+					disabled={deleting}
+				>
 					<Trash2 size={20} />
-					<span>{deleting ? 'Löschen...' : 'Beitrag löschen'}</span>
+					<span>{deleting ? "Löschen..." : "Beitrag löschen"}</span>
 				</button>
 			{/if}
 		</div>
@@ -203,7 +256,11 @@
 		<div class="submission-detail">
 			<!-- Image Section -->
 			<div class="image-section">
-				<img src={submission.imageUrl} alt={submission.title} class="main-image" />
+				<img
+					src={submission.imageUrl}
+					alt={submission.title}
+					class="main-image"
+				/>
 			</div>
 
 			<!-- Content Section -->
@@ -211,12 +268,18 @@
 				<!-- User Info -->
 				<div class="user-header">
 					<img
-						src={submission.user?.avatar || `https://i.pravatar.cc/150?u=${submission.userId}`}
-						alt={submission.user?.username || 'User'}
+						src={submission.user?.avatar ||
+							`https://i.pravatar.cc/150?u=${submission.userId}`}
+						alt={submission.user?.username || "User"}
 						class="user-avatar"
 					/>
 					<div class="user-info">
-						<a href="/profile/{submission.user?.username || submission.userId}" class="user-name">{submission.user?.username || submission.userId}</a>
+						<a
+							href="/profile/{submission.user?.username ||
+								submission.userId}"
+							class="user-name"
+							>{submission.user?.username || submission.userId}</a
+						>
 						<div class="submission-date">
 							<Calendar size={14} />
 							<span>{formatDate(submission.createdAt)}</span>
@@ -226,12 +289,21 @@
 
 				<!-- Title & Description -->
 				<div class="submission-content">
+					{#if competition}
+						<a
+							href="/competitions/{competition._id}"
+							class="competition-link"
+						>
+							<Award size={16} />
+							<span>{competition.title}</span>
+						</a>
+					{/if}
 					<h1 class="title">{submission.title}</h1>
 					<p class="description">{submission.description}</p>
 				</div>
 
 				<!-- Camera Info -->
-				{#if submission.metadata?.camera && submission.metadata.camera !== 'N/A'}
+				{#if submission.metadata?.camera && submission.metadata.camera !== "N/A"}
 					<div class="camera-section">
 						<h3 class="section-title">Kamera Informationen</h3>
 						<div class="camera-info">
@@ -239,13 +311,13 @@
 								<Camera size={16} />
 								<span>{submission.metadata.camera}</span>
 							</div>
-							{#if submission.metadata.lens && submission.metadata.lens !== 'N/A'}
+							{#if submission.metadata.lens && submission.metadata.lens !== "N/A"}
 								<div class="info-item">
 									<Aperture size={16} />
 									<span>{submission.metadata.lens}</span>
 								</div>
 							{/if}
-							{#if submission.metadata.settings && submission.metadata.settings !== 'N/A'}
+							{#if submission.metadata.settings && submission.metadata.settings !== "N/A"}
 								<div class="info-item">
 									<Star size={16} />
 									<span>{submission.metadata.settings}</span>
@@ -260,17 +332,25 @@
 					<div class="stats">
 						<div class="stat-item">
 							<ThumbsUp size={20} />
-							<span class="stat-value">{submission.votes?.community || 0}</span>
+							<span class="stat-value"
+								>{submission.votes?.community || 0}</span
+							>
 							<span class="stat-label">Community Votes</span>
 						</div>
 						<div class="stat-item">
 							<Star size={20} />
-							<span class="stat-value">{submission.votes?.jury ? submission.votes.jury.toFixed(1) : '0.0'}</span>
+							<span class="stat-value"
+								>{submission.votes?.jury
+									? submission.votes.jury.toFixed(1)
+									: "0.0"}</span
+							>
 							<span class="stat-label">Jury Bewertung</span>
 						</div>
 						<div class="stat-item">
 							<MessageCircle size={20} />
-							<span class="stat-value">{submission.comments?.length || 0}</span>
+							<span class="stat-value"
+								>{submission.comments?.length || 0}</span
+							>
 							<span class="stat-label">Kommentare</span>
 						</div>
 					</div>
@@ -283,13 +363,21 @@
 						on:click={handleVote}
 					>
 						<ThumbsUp size={20} />
-						<span>{hasVoted ? 'Bereits gevotet' : voting ? 'Voting...' : 'Vote für diese Submission'}</span>
+						<span
+							>{hasVoted
+								? "Bereits gevotet"
+								: voting
+									? "Voting..."
+									: "Vote für diese Submission"}</span
+						>
 					</button>
 				</div>
 
 				<!-- Comments Section -->
 				<div class="comments-section">
-					<h3 class="section-title">Kommentare ({submission.comments?.length || 0})</h3>
+					<h3 class="section-title">
+						Kommentare ({submission.comments?.length || 0})
+					</h3>
 
 					<!-- Comment Form -->
 					{#if $currentUser}
@@ -300,14 +388,20 @@
 								rows="3"
 								disabled={submittingComment}
 							></textarea>
-							<button
-								class="submit-comment-btn"
-								disabled={!commentText.trim() || submittingComment}
-								on:click={handleCommentSubmit}
-							>
-								<Send size={16} />
-								<span>{submittingComment ? 'Senden...' : 'Kommentar senden'}</span>
-							</button>
+							<div style="align-self: flex-end;">
+								<PrimaryButton
+									disabled={!commentText.trim() ||
+										submittingComment}
+									on:click={handleCommentSubmit}
+								>
+									<Send size={16} />
+									<span
+										>{submittingComment
+											? "Senden..."
+											: "Kommentar senden"}</span
+									>
+								</PrimaryButton>
+							</div>
 						</div>
 					{:else}
 						<div class="login-prompt">
@@ -322,10 +416,26 @@
 								<div class="comment">
 									<div class="comment-header">
 										<User size={16} />
-										<span class="comment-author">{comment.username}</span>
-										<span class="comment-date">{formatDate(comment.createdAt)}</span>
+										<span class="comment-author"
+											>{comment.username}</span
+										>
+										<span class="comment-date"
+											>{formatDate(
+												comment.createdAt,
+											)}</span
+										>
 									</div>
 									<p class="comment-text">{comment.text}</p>
+									{#if $currentUser && (comment.userId === $currentUser._id || $currentUser.role === "admin" || $currentUser.role === "jury")}
+										<button
+											class="delete-comment-btn"
+											on:click={() =>
+												handleDeleteComment(comment.id)}
+											title="Kommentar löschen"
+										>
+											<Trash2 size={14} />
+										</button>
+									{/if}
 								</div>
 							{/each}
 						</div>
@@ -367,7 +477,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.error-state {
@@ -508,6 +620,21 @@
 		background: white;
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--color-border);
+	}
+
+	.competition-link {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		font-size: 0.875rem;
+		color: var(--color-primary);
+		text-decoration: none;
+		margin-bottom: var(--spacing-sm);
+		font-weight: 500;
+	}
+
+	.competition-link:hover {
+		text-decoration: underline;
 	}
 
 	.title {
@@ -661,31 +788,6 @@
 		border-color: var(--color-primary);
 	}
 
-	.submit-comment-btn {
-		all: unset;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--spacing-xs);
-		padding: var(--spacing-sm) var(--spacing-md);
-		background: var(--color-primary);
-		color: white;
-		border-radius: var(--radius-md);
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		align-self: flex-end;
-	}
-
-	.submit-comment-btn:hover:not(:disabled) {
-		background: var(--color-primary-dark);
-	}
-
-	.submit-comment-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
 	.login-prompt {
 		padding: var(--spacing-md);
 		background: var(--color-surface);
@@ -706,6 +808,25 @@
 		background: var(--color-surface);
 		border-radius: var(--radius-md);
 		border: 1px solid var(--color-border);
+		position: relative;
+	}
+
+	.delete-comment-btn {
+		position: absolute;
+		top: var(--spacing-sm);
+		right: var(--spacing-sm);
+		background: none;
+		border: none;
+		padding: 4px;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		opacity: 0.6;
+		transition: opacity 0.2s;
+	}
+
+	.delete-comment-btn:hover {
+		opacity: 1;
+		color: var(--color-error);
 	}
 
 	.comment-header {

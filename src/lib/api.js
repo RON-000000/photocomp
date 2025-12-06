@@ -143,6 +143,15 @@ export async function checkIfUserVoted(submissionId, userId) {
 	return handleResponse(response);
 }
 
+export async function deleteComment(submissionId, commentId) {
+	const headers = await getAuthHeaders();
+	const response = await fetch(`${API_BASE}/submissions/${submissionId}/comments/${commentId}`, {
+		method: 'DELETE',
+		headers
+	});
+	return handleResponse(response);
+}
+
 export async function addCommentToSubmission(submissionId, commentData) {
 	const headers = await getAuthHeaders();
 	const response = await fetch(`${API_BASE}/submissions/${submissionId}/comments`, {
