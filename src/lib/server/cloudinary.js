@@ -1,8 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { 
-	CLOUDINARY_CLOUD_NAME, 
-	CLOUDINARY_API_KEY, 
-	CLOUDINARY_API_SECRET 
+import {
+	CLOUDINARY_CLOUD_NAME,
+	CLOUDINARY_API_KEY,
+	CLOUDINARY_API_SECRET
 } from '$env/static/private';
 
 cloudinary.config({
@@ -57,7 +57,7 @@ export function extractPublicId(imageUrl) {
 	}
 
 	try {
-		// Example URL: https://res.cloudinary.com/drhonsrxg/image/upload/v1764980982/photozurich/competitions/lxpfgzsaysap2ld3ufqj.jpg
+		// Example URL: https://res.cloudinary.com/demo/image/upload/v1764980982/photozurich/competitions/lxpfgzsaysap2ld3ufqj.jpg
 		// Public ID: photozurich/competitions/lxpfgzsaysap2ld3ufqj
 		const parts = imageUrl.split('/upload/');
 		if (parts.length < 2) {
