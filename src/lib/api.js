@@ -24,8 +24,17 @@ async function getAuthHeaders() {
 
 async function handleResponse(response) {
 	if (!response.ok) {
-		const error = await response.json();
-		throw new Error(error.error || 'API request failed');
+		let errorMessage = 'API request failed';
+		try {
+			const error = await response.json();
+			errorMessage = error.error || errorMessage;
+		} catch (e) {
+			// If response is not JSON (e.g. 500 HTML page), read text
+			const text = await response.text();
+			console.error('API Error (Non-JSON):', text.substring(0, 200)); // Log first 200 chars
+			errorMessage = `Server Error (${response.status}): ${response.statusText}`;
+		}
+		throw new Error(errorMessage);
 	}
 	return response.json();
 }
