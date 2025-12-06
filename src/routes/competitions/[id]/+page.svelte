@@ -1,27 +1,49 @@
 <script>
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { getCompetitionById, getSubmissionsByCompetitionId, deleteCompetition } from '$lib/api.js';
-	import { formatDate } from '$lib/data/mockData';
-	import { currentUser } from '$lib/stores/auth0.js';
-	import SubmissionCard from '$lib/components/SubmissionCard.svelte';
-	import Leaderboard from '$lib/components/Leaderboard.svelte';
-	import { Calendar, Users, Image, Award, FileText, Scale, Upload, Edit3, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search } from 'lucide-svelte';
+	import { onMount } from "svelte";
+	import { page } from "$app/stores";
+	import { goto } from "$app/navigation";
+	import {
+		getCompetitionById,
+		getSubmissionsByCompetitionId,
+		deleteCompetition,
+	} from "$lib/api.js";
+	import { formatDate } from "$lib/data/mockData";
+	import { currentUser } from "$lib/stores/auth0.js";
+	import SubmissionCard from "$lib/components/SubmissionCard.svelte";
+	import Leaderboard from "$lib/components/Leaderboard.svelte";
+	import {
+		Calendar,
+		Users,
+		Image,
+		Award,
+		FileText,
+		Scale,
+		Upload,
+		Edit3,
+		Trash2,
+		ArrowUpDown,
+		ArrowUp,
+		ArrowDown,
+		Search,
+	} from "lucide-svelte";
 
 	let competition = null;
 	let submissions = [];
 	let loading = true;
 	let error = null;
 	let deleting = false;
-	let sortBy = 'date'; // date, votes, jury, comments
-	let sortOrder = 'desc'; // desc or asc
-	let searchQuery = '';
+	let sortBy = "date"; // date, votes, jury, comments
+	let sortOrder = "desc"; // desc or asc
+	let searchQuery = "";
 
 	$: competitionId = $page.params.id;
-	$: isAdmin = $currentUser && $currentUser.role === 'admin';
+	$: isAdmin = $currentUser && $currentUser.role === "admin";
 	$: filteredSubmissions = filterSubmissions(submissions, searchQuery);
-	$: sortedSubmissions = sortSubmissions(filteredSubmissions, sortBy, sortOrder);
+	$: sortedSubmissions = sortSubmissions(
+		filteredSubmissions,
+		sortBy,
+		sortOrder,
+	);
 
 	onMount(async () => {
 		await loadData();
@@ -36,7 +58,7 @@
 			submissions = await getSubmissionsByCompetitionId(competitionId);
 		} catch (err) {
 			error = err.message;
-			console.error('Error loading competition:', err);
+			console.error("Error loading competition:", err);
 		} finally {
 			loading = false;
 		}
@@ -47,7 +69,11 @@
 	}
 
 	async function handleDeleteCompetition() {
-		if (!confirm('Möchtest du diese Competition wirklich löschen? Alle zugehörigen Submissions werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.')) {
+		if (
+			!confirm(
+				"Möchtest du diese Competition wirklich löschen? Alle zugehörigen Submissions werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+			)
+		) {
 			return;
 		}
 
@@ -55,11 +81,11 @@
 
 		try {
 			await deleteCompetition(competitionId);
-			alert('Competition erfolgreich gelöscht! 🗑️');
-			goto('/competitions');
+			alert("Competition erfolgreich gelöscht! 🗑️");
+			goto("/competitions");
 		} catch (err) {
-			console.error('Error deleting competition:', err);
-			alert('Fehler beim Löschen: ' + err.message);
+			console.error("Error deleting competition:", err);
+			alert("Fehler beim Löschen: " + err.message);
 		} finally {
 			deleting = false;
 		}
@@ -73,52 +99,77 @@
 	function getStatus(comp) {
 		const now = new Date();
 		const deadline = new Date(comp.deadline);
-		
-		if (now > deadline) return 'completed';
-		return comp.status || 'active';
+
+		if (now > deadline) return "completed";
+		return comp.status || "active";
 	}
-	
+
 	$: currentStatus = competition ? getStatus(competition) : null;
-	$: statusBadge = currentStatus === 'active' ? 'success' :
-	                 currentStatus === 'voting' ? 'warning' : 'primary';
-	$: statusText = currentStatus === 'active' ? 'AKTIV' :
-	                currentStatus === 'voting' ? 'VOTING' : 'BEENDET';
+	$: statusBadge =
+		currentStatus === "active"
+			? "success"
+			: currentStatus === "voting"
+				? "warning"
+				: "primary";
+	$: statusText =
+		currentStatus === "active"
+			? "AKTIV"
+			: currentStatus === "voting"
+				? "VOTING"
+				: "BEENDET";
 
 	function filterSubmissions(subs, query) {
 		if (!query.trim()) return subs;
 
 		const lowerQuery = query.toLowerCase();
-		return subs.filter(sub =>
-			(sub.user?.username || '').toLowerCase().includes(lowerQuery) ||
-			(sub.title || '').toLowerCase().includes(lowerQuery)
+		return subs.filter(
+			(sub) =>
+				(sub.user?.username || "").toLowerCase().includes(lowerQuery) ||
+				(sub.title || "").toLowerCase().includes(lowerQuery),
 		);
 	}
 
 	function sortSubmissions(subs, sortType, order) {
 		const sorted = [...subs];
-		const multiplier = order === 'desc' ? -1 : 1;
+		const multiplier = order === "desc" ? -1 : 1;
 
-		switch(sortType) {
-			case 'date':
-				return sorted.sort((a, b) => multiplier * (new Date(b.createdAt) - new Date(a.createdAt)));
-			case 'votes':
-				return sorted.sort((a, b) => multiplier * ((b.votes?.community || 0) - (a.votes?.community || 0)));
-			case 'jury':
-				return sorted.sort((a, b) => multiplier * ((b.votes?.jury || 0) - (a.votes?.jury || 0)));
-			case 'comments':
-				return sorted.sort((a, b) => multiplier * ((b.comments?.length || 0) - (a.comments?.length || 0)));
+		switch (sortType) {
+			case "date":
+				return sorted.sort(
+					(a, b) =>
+						multiplier *
+						(new Date(b.createdAt) - new Date(a.createdAt)),
+				);
+			case "votes":
+				return sorted.sort(
+					(a, b) =>
+						multiplier *
+						((b.votes?.community || 0) - (a.votes?.community || 0)),
+				);
+			case "jury":
+				return sorted.sort(
+					(a, b) =>
+						multiplier *
+						((b.votes?.jury || 0) - (a.votes?.jury || 0)),
+				);
+			case "comments":
+				return sorted.sort(
+					(a, b) =>
+						multiplier *
+						((b.comments?.length || 0) - (a.comments?.length || 0)),
+				);
 			default:
 				return sorted;
 		}
 	}
 
 	function toggleSortOrder() {
-		sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+		sortOrder = sortOrder === "desc" ? "asc" : "desc";
 	}
 </script>
 
 <svelte:head>
-	<title>{competition?.title || 'Wettbewerb'} - PhotoZürich</title>
+	<title>{competition?.title || "Wettbewerb"} - PhotoZürich</title>
 </svelte:head>
 
 {#if loading}
@@ -131,7 +182,9 @@
 		<div class="error-state">
 			<h2>Fehler</h2>
 			<p>{error}</p>
-			<a href="/competitions" class="btn btn-primary">Zurück zu Wettbewerben</a>
+			<a href="/competitions" class="btn btn-primary"
+				>Zurück zu Wettbewerben</a
+			>
 		</div>
 	</div>
 {:else if competition}
@@ -151,13 +204,20 @@
 
 				{#if isAdmin}
 					<div class="admin-actions">
-						<button on:click={handleEditCompetition} class="admin-button edit-button">
+						<button
+							on:click={handleEditCompetition}
+							class="admin-button edit-button"
+						>
 							<Edit3 size={18} />
 							<span>Bearbeiten</span>
 						</button>
-						<button on:click={handleDeleteCompetition} class="admin-button delete-button" disabled={deleting}>
+						<button
+							on:click={handleDeleteCompetition}
+							class="admin-button delete-button"
+							disabled={deleting}
+						>
 							<Trash2 size={18} />
-							<span>{deleting ? 'Löschen...' : 'Löschen'}</span>
+							<span>{deleting ? "Löschen..." : "Löschen"}</span>
 						</button>
 					</div>
 				{/if}
@@ -175,28 +235,41 @@
 						<Calendar size={20} />
 						<div>
 							<div class="stat-label">Deadline</div>
-							<div class="stat-value">{formatDate(competition.deadline)}</div>
+							<div class="stat-value">
+								{formatDate(competition.deadline)}
+							</div>
 						</div>
 					</div>
 					<div class="stat-item">
 						<Users size={20} />
 						<div>
 							<div class="stat-label">Teilnehmer</div>
-							<div class="stat-value">{competition.participantCount || 0}</div>
+							<div class="stat-value">
+								{new Set(
+									submissions.map(
+										(s) => s.user?._id || s.userId,
+									),
+								).size}
+							</div>
 						</div>
 					</div>
 					<div class="stat-item">
 						<Image size={20} />
 						<div>
 							<div class="stat-label">Beiträge</div>
-							<div class="stat-value">{competition.submissionCount || 0}</div>
+							<div class="stat-value">
+								{competition.submissionCount || 0}
+							</div>
 						</div>
 					</div>
 				</div>
-				
-				{#if currentStatus === 'active'}
+
+				{#if currentStatus === "active"}
 					<div class="cta-section">
-						<a href="/submit?competition={competition._id}" class="btn btn-primary btn-lg">
+						<a
+							href="/submit?competition={competition._id}"
+							class="btn btn-primary btn-lg"
+						>
 							<Upload size={20} />
 							<span>Foto einreichen</span>
 						</a>
@@ -218,12 +291,16 @@
 
 						<div class="info-section">
 							<div class="info-label">Start</div>
-							<div class="info-value">{formatDate(competition.startDate)}</div>
+							<div class="info-value">
+								{formatDate(competition.startDate)}
+							</div>
 						</div>
 
 						<div class="info-section">
 							<div class="info-label">Deadline</div>
-							<div class="info-value">{formatDate(competition.deadline)}</div>
+							<div class="info-value">
+								{formatDate(competition.deadline)}
+							</div>
 						</div>
 					</div>
 
@@ -236,7 +313,9 @@
 						<ul class="prizes-list">
 							{#each competition.prizes as prize, index}
 								<li>
-									<span class="prize-position">{index + 1}.</span>
+									<span class="prize-position"
+										>{index + 1}.</span
+									>
 									<span>{prize}</span>
 								</li>
 							{/each}
@@ -250,7 +329,9 @@
 						</h3>
 
 						<ul class="rules-list">
-							{#each (Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules.split('\n').filter(r => r.trim()) : []) as rule}
+							{#each Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules
+											.split("\n")
+											.filter( (r) => r.trim(), ) : [] as rule}
 								<li>{rule}</li>
 							{/each}
 						</ul>
@@ -265,7 +346,12 @@
 
 							<ul class="jury-list">
 								{#each competition.juryMembers as juryMember}
-									<li><a href="/profile/{juryMember}" class="jury-link">@{juryMember}</a></li>
+									<li>
+										<a
+											href="/profile/{juryMember}"
+											class="jury-link">@{juryMember}</a
+										>
+									</li>
 								{/each}
 							</ul>
 						</div>
@@ -274,9 +360,13 @@
 
 				<!-- Leaderboard -->
 				<section class="section">
-					<Leaderboard competitionId={competition._id} {submissions} {competition} />
+					<Leaderboard
+						competitionId={competition._id}
+						{submissions}
+						{competition}
+					/>
 				</section>
-				
+
 				<!-- Submissions Gallery -->
 				<section class="section">
 					<div class="section-header">
@@ -298,13 +388,19 @@
 										class="search-input"
 									/>
 									{#if searchQuery}
-										<button class="clear-search" on:click={() => searchQuery = ''}>
+										<button
+											class="clear-search"
+											on:click={() => (searchQuery = "")}
+										>
 											×
 										</button>
 									{/if}
 								</div>
 								{#if searchQuery && filteredSubmissions.length !== submissions.length}
-									<span class="search-results">{filteredSubmissions.length} von {submissions.length} Ergebnissen</span>
+									<span class="search-results"
+										>{filteredSubmissions.length} von {submissions.length}
+										Ergebnissen</span
+									>
 								{/if}
 							</div>
 
@@ -318,35 +414,42 @@
 									<div class="sort-buttons">
 										<button
 											class="sort-btn"
-											class:active={sortBy === 'date'}
-											on:click={() => sortBy = 'date'}
+											class:active={sortBy === "date"}
+											on:click={() => (sortBy = "date")}
 										>
 											Datum
 										</button>
 										<button
 											class="sort-btn"
-											class:active={sortBy === 'votes'}
-											on:click={() => sortBy = 'votes'}
+											class:active={sortBy === "votes"}
+											on:click={() => (sortBy = "votes")}
 										>
 											Stimmen
 										</button>
 										<button
 											class="sort-btn"
-											class:active={sortBy === 'jury'}
-											on:click={() => sortBy = 'jury'}
+											class:active={sortBy === "jury"}
+											on:click={() => (sortBy = "jury")}
 										>
 											Jury Bewertung
 										</button>
 										<button
 											class="sort-btn"
-											class:active={sortBy === 'comments'}
-											on:click={() => sortBy = 'comments'}
+											class:active={sortBy === "comments"}
+											on:click={() =>
+												(sortBy = "comments")}
 										>
 											Kommentare
 										</button>
 									</div>
-									<button class="sort-order-btn" on:click={toggleSortOrder} title={sortOrder === 'desc' ? 'Absteigend' : 'Aufsteigend'}>
-										{#if sortOrder === 'desc'}
+									<button
+										class="sort-order-btn"
+										on:click={toggleSortOrder}
+										title={sortOrder === "desc"
+											? "Absteigend"
+											: "Aufsteigend"}
+									>
+										{#if sortOrder === "desc"}
 											<ArrowDown size={18} />
 										{:else}
 											<ArrowUp size={18} />
@@ -358,19 +461,26 @@
 
 						<div class="submissions-grid">
 							{#each sortedSubmissions as submission}
-								<button 
+								<button
 									class="submission-wrapper"
-									on:click={() => openSubmissionDetail(submission)}
+									on:click={() =>
+										openSubmissionDetail(submission)}
 								>
-									<SubmissionCard {submission} showVoting={currentStatus === 'voting'} />
+									<SubmissionCard
+										{submission}
+										showVoting={currentStatus === "voting"}
+									/>
 								</button>
 							{/each}
 						</div>
 					{:else}
 						<div class="empty-state">
 							<p>Noch keine Submissions.</p>
-							{#if currentStatus === 'active'}
-								<a href="/submit?competition={competition._id}" class="btn btn-primary">
+							{#if currentStatus === "active"}
+								<a
+									href="/submit?competition={competition._id}"
+									class="btn btn-primary"
+								>
 									Sei der Erste!
 								</a>
 							{/if}
@@ -378,7 +488,7 @@
 					{/if}
 				</section>
 			</div>
-			
+
 			<!-- Sidebar -->
 			<aside class="sidebar">
 				<div class="info-card">
@@ -386,29 +496,33 @@
 						<FileText size={20} />
 						<span>Details</span>
 					</h3>
-					
+
 					<div class="info-section">
 						<div class="info-label">Thema</div>
 						<div class="info-value">{competition.theme}</div>
 					</div>
-					
+
 					<div class="info-section">
 						<div class="info-label">Start</div>
-						<div class="info-value">{formatDate(competition.startDate)}</div>
+						<div class="info-value">
+							{formatDate(competition.startDate)}
+						</div>
 					</div>
-					
+
 					<div class="info-section">
 						<div class="info-label">Deadline</div>
-						<div class="info-value">{formatDate(competition.deadline)}</div>
+						<div class="info-value">
+							{formatDate(competition.deadline)}
+						</div>
 					</div>
 				</div>
-				
+
 				<div class="info-card">
 					<h3>
 						<Award size={20} />
 						<span>Preise</span>
 					</h3>
-					
+
 					<ul class="prizes-list">
 						{#each competition.prizes as prize, index}
 							<li>
@@ -418,30 +532,37 @@
 						{/each}
 					</ul>
 				</div>
-				
+
 				<div class="info-card">
 					<h3>
 						<Scale size={20} />
 						<span>Regeln</span>
 					</h3>
-					
+
 					<ul class="rules-list">
-						{#each (Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules.split('\n').filter(r => r.trim()) : []) as rule}
+						{#each Array.isArray(competition.rules) ? competition.rules : competition.rules ? competition.rules
+										.split("\n")
+										.filter((r) => r.trim()) : [] as rule}
 							<li>{rule}</li>
 						{/each}
 					</ul>
 				</div>
-				
+
 				{#if competition.juryMembers && competition.juryMembers.length > 0}
 					<div class="info-card">
 						<h3>
 							<Users size={20} />
 							<span>Jury</span>
 						</h3>
-						
+
 						<ul class="jury-list">
 							{#each competition.juryMembers as juryMember}
-								<li><a href="/profile/{juryMember}" class="jury-link">@{juryMember}</a></li>
+								<li>
+									<a
+										href="/profile/{juryMember}"
+										class="jury-link">@{juryMember}</a
+									>
+								</li>
 							{/each}
 						</ul>
 					</div>
@@ -454,7 +575,9 @@
 		<div class="error-state">
 			<h2>Wettbewerb nicht gefunden</h2>
 			<p>Der gesuchte Wettbewerb existiert nicht.</p>
-			<a href="/competitions" class="btn btn-primary">Zurück zu Wettbewerben</a>
+			<a href="/competitions" class="btn btn-primary"
+				>Zurück zu Wettbewerben</a
+			>
 		</div>
 	</div>
 {/if}
@@ -471,12 +594,12 @@
 		justify-content: center;
 		gap: var(--spacing-lg);
 	}
-	
+
 	.loading-state p {
 		color: var(--color-text-secondary);
 		margin: 0;
 	}
-	
+
 	.error-state {
 		text-align: center;
 		padding: var(--spacing-4xl);
@@ -487,22 +610,22 @@
 		justify-content: center;
 		gap: var(--spacing-lg);
 	}
-	
+
 	.error-state h2 {
 		margin-bottom: var(--spacing-sm);
 	}
-	
+
 	.error-state p {
 		color: var(--color-text-secondary);
 		margin: 0;
 	}
-	
+
 	/* Hero Section */
 	.competition-hero {
 		position: relative;
 		margin-bottom: var(--spacing-4xl);
 	}
-	
+
 	.hero-image {
 		position: absolute;
 		top: 0;
@@ -511,22 +634,26 @@
 		height: 500px;
 		overflow: hidden;
 	}
-	
+
 	.hero-image img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 	}
-	
+
 	.hero-overlay {
 		position: absolute;
 		top: 0;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+		background: linear-gradient(
+			to bottom,
+			rgba(0, 0, 0, 0.3) 0%,
+			rgba(0, 0, 0, 0.7) 100%
+		);
 	}
-	
+
 	.hero-content {
 		position: relative;
 		padding-top: 200px;
@@ -534,11 +661,11 @@
 		color: white;
 		max-width: 800px;
 	}
-	
+
 	.status-badge {
 		margin-bottom: var(--spacing-lg);
 	}
-	
+
 	.hero-content h1 {
 		font-size: 3rem;
 		font-weight: 700;
@@ -547,7 +674,7 @@
 		letter-spacing: -0.03em;
 		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 	}
-	
+
 	.hero-subtitle {
 		font-size: 1.25rem;
 		line-height: 1.6;
@@ -555,7 +682,7 @@
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 		margin: 0;
 	}
-	
+
 	/* Content Layout */
 	.content-wrapper {
 		display: grid;
@@ -563,11 +690,11 @@
 		gap: var(--spacing-3xl);
 		margin-top: var(--spacing-4xl);
 	}
-	
+
 	.main-content {
 		min-width: 0;
 	}
-	
+
 	/* Stats Section */
 	.stats-section {
 		display: grid;
@@ -575,7 +702,7 @@
 		gap: var(--spacing-lg);
 		margin-bottom: var(--spacing-3xl);
 	}
-	
+
 	.stat-item {
 		display: flex;
 		align-items: center;
@@ -585,12 +712,12 @@
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--color-border);
 	}
-	
+
 	.stat-item :global(svg) {
 		color: var(--color-text-muted);
 		flex-shrink: 0;
 	}
-	
+
 	.stat-label {
 		font-size: 0.8125rem;
 		color: var(--color-text-muted);
@@ -598,13 +725,13 @@
 		letter-spacing: 0.5px;
 		margin-bottom: 0.25rem;
 	}
-	
+
 	.stat-value {
 		font-size: 1.25rem;
 		font-weight: 600;
 		color: var(--color-text-primary);
 	}
-	
+
 	/* CTA Section */
 	.cta-section {
 		margin-bottom: var(--spacing-3xl);
@@ -614,17 +741,17 @@
 		border-radius: var(--radius-lg);
 		border: 2px dashed var(--color-border);
 	}
-	
+
 	.btn-lg {
 		padding: var(--spacing-md) var(--spacing-2xl);
 		font-size: 1rem;
 	}
-	
+
 	/* Sections */
 	.section {
 		margin-bottom: var(--spacing-4xl);
 	}
-	
+
 	.section-header {
 		display: flex;
 		align-items: center;
@@ -633,13 +760,13 @@
 		padding-bottom: var(--spacing-lg);
 		border-bottom: 1px solid var(--color-border);
 	}
-	
+
 	.section-header h2 {
 		font-size: 1.5rem;
 		font-weight: 600;
 		margin: 0;
 	}
-	
+
 	.section-header .count {
 		display: inline-flex;
 		align-items: center;
@@ -653,7 +780,7 @@
 		font-weight: 600;
 		color: var(--color-text-secondary);
 	}
-	
+
 	/* Filter and Sort Section */
 	.filter-sort-section {
 		margin-bottom: var(--spacing-xl);
@@ -820,7 +947,7 @@
 		cursor: pointer;
 		display: block;
 	}
-	
+
 	.empty-state {
 		text-align: center;
 		padding: var(--spacing-4xl);
@@ -828,13 +955,13 @@
 		border-radius: var(--radius-lg);
 		border: 2px dashed var(--color-border);
 	}
-	
+
 	.empty-state p {
 		color: var(--color-text-secondary);
 		margin-bottom: var(--spacing-xl);
 		font-size: 1.125rem;
 	}
-	
+
 	/* Sidebar */
 	.sidebar {
 		position: sticky;
@@ -846,7 +973,7 @@
 	.sidebar-mobile {
 		display: none;
 	}
-	
+
 	.info-card {
 		background: white;
 		border-radius: var(--radius-lg);
@@ -854,11 +981,11 @@
 		border: 1px solid var(--color-border);
 		margin-bottom: var(--spacing-lg);
 	}
-	
+
 	.info-card:last-child {
 		margin-bottom: 0;
 	}
-	
+
 	.info-card h3 {
 		display: flex;
 		align-items: center;
@@ -870,19 +997,19 @@
 		border-bottom: 1px solid var(--color-border);
 		color: var(--color-text-primary);
 	}
-	
+
 	.info-card h3 :global(svg) {
 		color: var(--color-text-muted);
 	}
-	
+
 	.info-section {
 		margin-bottom: var(--spacing-md);
 	}
-	
+
 	.info-section:last-child {
 		margin-bottom: 0;
 	}
-	
+
 	.info-label {
 		font-size: 0.8125rem;
 		color: var(--color-text-muted);
@@ -890,13 +1017,13 @@
 		letter-spacing: 0.5px;
 		margin-bottom: 0.25rem;
 	}
-	
+
 	.info-value {
 		font-size: 0.9375rem;
 		font-weight: 500;
 		color: var(--color-text-primary);
 	}
-	
+
 	.prizes-list,
 	.rules-list,
 	.jury-list {
@@ -904,7 +1031,7 @@
 		padding: 0;
 		margin: 0;
 	}
-	
+
 	.prizes-list li,
 	.rules-list li {
 		font-size: 0.9375rem;
@@ -913,23 +1040,23 @@
 		padding: var(--spacing-sm) 0;
 		border-bottom: 1px solid var(--color-border);
 	}
-	
+
 	.prizes-list li:last-child,
 	.rules-list li:last-child {
 		margin-bottom: 0;
 		border-bottom: none;
 	}
-	
+
 	.prizes-list li {
 		display: flex;
 		gap: var(--spacing-sm);
 	}
-	
+
 	.prize-position {
 		font-weight: 600;
 		color: var(--color-primary);
 	}
-	
+
 	.jury-list li {
 		margin-bottom: var(--spacing-xs);
 	}
@@ -963,7 +1090,7 @@
 			margin-bottom: var(--spacing-2xl);
 		}
 	}
-	
+
 	@media (max-width: 768px) {
 		.hero-image {
 			height: 400px;
@@ -1012,16 +1139,16 @@
 			gap: var(--spacing-sm);
 		}
 	}
-	
+
 	@media (max-width: 480px) {
 		.hero-image {
 			height: 300px;
 		}
-		
+
 		.hero-content {
 			padding-top: 100px;
 		}
-		
+
 		.hero-content h1 {
 			font-size: 1.5rem;
 		}
