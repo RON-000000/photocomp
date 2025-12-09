@@ -196,6 +196,20 @@ export async function uploadImage(file, folder = 'submissions') {
 	return handleResponse(response);
 }
 
+// ==================== PUBLIC STATS ====================
+
+export async function getPublicStats() {
+	const response = await fetch(`${API_BASE}/stats`);
+	return handleResponse(response);
+}
+
+// ==================== FEATURED WINNER ====================
+
+export async function getFeaturedWinner() {
+	const response = await fetch(`${API_BASE}/featured-winner`);
+	return handleResponse(response);
+}
+
 // ==================== IMAGE CLEANUP ====================
 
 export async function deleteUploadedImage(imageUrl) {
