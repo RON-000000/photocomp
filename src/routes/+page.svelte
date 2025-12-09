@@ -219,9 +219,9 @@
     height: 100%;
     background: linear-gradient(
         to bottom,
-        rgba(255, 255, 255, 0),
-        rgba(249, 250, 251, 0),
-        rgba(249, 250, 251, 0)   
+        rgba(255, 255, 255, 1),
+        rgba(255, 255, 255, 0.5),
+        rgb(255, 255, 255, 0)   
     );
 }
 
@@ -243,21 +243,19 @@
         font-weight: 700;
         margin-bottom: var(--spacing-lg);
         letter-spacing: -0.03em;
-        color: white;
+        color: (--color-text-primary);
         line-height: 1.1;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.5)
     }
 
     .hero-subtitle {
         font-size: 1.25rem;
         line-height: 1.7;
         margin-bottom: var(--spacing-2xl);
-        color: white;
+        color: (--color-text-secondary);
         font-weight: 400;
         max-width: 640px;
         margin-left: auto;
         margin-right: auto;
-        text-shadow: 2px 2px 8px rgba(0,0,0,0.5)
     }
 
     .hero-actions {
