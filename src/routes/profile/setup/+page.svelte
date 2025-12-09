@@ -1,44 +1,61 @@
 <script>
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { currentUser, refreshUserData } from '$lib/stores/auth0';
-	import { User, MapPin, Link as LinkIcon, FileText, Camera, Check, ArrowLeft, ArrowRight } from 'lucide-svelte';
-	import ImageUpload from '$lib/components/ImageUpload.svelte';
-	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
-	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { onMount } from "svelte";
+	import { goto } from "$app/navigation";
+	import { currentUser, refreshUserData } from "$lib/stores/auth0";
+	import {
+		User,
+		MapPin,
+		Link as LinkIcon,
+		FileText,
+		Camera,
+		Check,
+		ArrowLeft,
+		ArrowRight,
+	} from "lucide-svelte";
+	import ImageUpload from "$lib/components/ImageUpload.svelte";
+	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
+	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
+	import LoadingSpinner from "$lib/components/LoadingSpinner.svelte";
 
 	let loading = false;
 	let step = 1;
 	let usernameAvailable = null;
 	let checkingUsername = false;
-	let usernameError = '';
+	let usernameError = "";
 
 	let formData = {
-		username: '',
-		name: '',
-		bio: '',
-		location: 'Zürich, Schweiz',
-		website: '',
-		avatar: ''
+		username: "",
+		name: "",
+		bio: "",
+		location: "Zürich, Schweiz",
+		website: "",
+		avatar: "",
 	};
 
 	onMount(() => {
 		if (!$currentUser) {
-			goto('/');
+			goto("/");
 			return;
 		}
 
-		// Pre-fill with existing data
+		// For new users (profileCompleted = false), leave username and name empty
+		// For returning users, pre-fill with existing data
+		const isNewUser = !$currentUser.profileCompleted;
 		formData = {
-			username: $currentUser.username || '',
-			name: $currentUser.name || '',
-			bio: $currentUser.bio || '',
-			location: $currentUser.location || 'Zürich, Schweiz',
-			website: $currentUser.website || '',
-			avatar: $currentUser.avatar || ''
+			username: isNewUser ? "" : $currentUser.username || "",
+			name: isNewUser ? "" : $currentUser.name || "",
+			bio: $currentUser.bio || "",
+			location: $currentUser.location || "Zürich, Schweiz",
+			website: $currentUser.website || "",
+			avatar: $currentUser.avatar || "",
 		};
 	});
+
+	// Remove @ symbols from username input
+	function handleUsernameInput(event) {
+		const value = event.target.value.replace(/@/g, "");
+		formData.username = value;
+	}
 
 	// Debounced username check
 	let usernameTimeout;
@@ -47,23 +64,28 @@
 
 		if (!username || username.length < 3) {
 			usernameAvailable = null;
-			usernameError = username ? 'Username muss mindestens 3 Zeichen haben' : '';
+			usernameError = username
+				? "Username muss mindestens 3 Zeichen haben"
+				: "";
 			return;
 		}
 
 		// Validate format
 		if (!/^[a-z0-9_]+$/.test(username)) {
 			usernameAvailable = false;
-			usernameError = 'Nur Kleinbuchstaben, Zahlen und Unterstriche erlaubt';
+			usernameError =
+				"Nur Kleinbuchstaben, Zahlen und Unterstriche erlaubt";
 			return;
 		}
 
 		checkingUsername = true;
-		usernameError = '';
+		usernameError = "";
 
 		usernameTimeout = setTimeout(async () => {
 			try {
-				const response = await fetch(`/api/users/check-username?username=${encodeURIComponent(username)}`);
+				const response = await fetch(
+					`/api/users/check-username?username=${encodeURIComponent(username)}`,
+				);
 				const data = await response.json();
 
 				// If it's the current user's username, it's available
@@ -72,11 +94,11 @@
 				} else {
 					usernameAvailable = data.available;
 					if (!data.available) {
-						usernameError = 'Dieser Username ist bereits vergeben';
+						usernameError = "Dieser Username ist bereits vergeben";
 					}
 				}
 			} catch (error) {
-				console.error('Error checking username:', error);
+				console.error("Error checking username:", error);
 				usernameAvailable = null;
 			} finally {
 				checkingUsername = false;
@@ -93,14 +115,14 @@
 	function nextStep() {
 		if (step === 1) {
 			if (!formData.username || formData.username.length < 3) {
-				usernameError = 'Username muss mindestens 3 Zeichen haben';
+				usernameError = "Username muss mindestens 3 Zeichen haben";
 				return;
 			}
 			if (!usernameAvailable) {
 				return;
 			}
 			if (!formData.name) {
-				alert('Bitte gib deinen Namen ein');
+				alert("Bitte gib deinen Namen ein");
 				return;
 			}
 		}
@@ -113,26 +135,29 @@
 
 	async function handleSubmit() {
 		if (!formData.username || !formData.name) {
-			alert('Username und Name sind Pflichtfelder');
+			alert("Username und Name sind Pflichtfelder");
 			return;
 		}
 
 		if (!usernameAvailable && formData.username !== $currentUser.username) {
-			alert('Bitte wähle einen verfügbaren Username');
+			alert("Bitte wähle einen verfügbaren Username");
 			return;
 		}
 
 		loading = true;
 
 		try {
-			const response = await fetch(`/api/users/${$currentUser.username}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					...formData,
-					profileCompleted: true
-				})
-			});
+			const response = await fetch(
+				`/api/users/${$currentUser.username}`,
+				{
+					method: "PATCH",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						...formData,
+						profileCompleted: true,
+					}),
+				},
+			);
 
 			if (response.ok) {
 				const updatedUser = await response.json();
@@ -144,11 +169,11 @@
 				goto(`/profile/${updatedUser.username}`);
 			} else {
 				const error = await response.json();
-				alert('Fehler: ' + error.error);
+				alert("Fehler: " + error.error);
 			}
 		} catch (error) {
-			console.error('Error updating profile:', error);
-			alert('Fehler beim Erstellen des Profils');
+			console.error("Error updating profile:", error);
+			alert("Fehler beim Erstellen des Profils");
 		} finally {
 			loading = false;
 		}
@@ -168,7 +193,11 @@
 
 		<!-- Progress Steps -->
 		<div class="progress-steps">
-			<div class="step" class:active={step >= 1} class:completed={step > 1}>
+			<div
+				class="step"
+				class:active={step >= 1}
+				class:completed={step > 1}
+			>
 				<div class="step-number">
 					{#if step > 1}
 						<Check size={16} />
@@ -191,22 +220,23 @@
 				<div class="form-step">
 					<h2>Wähle deinen Username und Namen</h2>
 					<p class="step-description">
-						Dein Username ist einzigartig und wird in deiner Profil-URL verwendet.
+						Dein Username ist einzigartig und wird in deiner
+						Profil-URL verwendet.
 					</p>
 
 					<div class="form-group">
-						<label for="username">
-							Username *
-						</label>
+						<label for="username"> Username * </label>
 						<div class="input-with-prefix">
 							<span class="input-prefix">@</span>
 							<input
 								id="username"
 								type="text"
-								bind:value={formData.username}
+								value={formData.username}
+								on:input={handleUsernameInput}
 								placeholder="dein_username"
 								class:error={usernameError}
-								class:success={usernameAvailable && !checkingUsername}
+								class:success={usernameAvailable &&
+									!checkingUsername}
 							/>
 							{#if checkingUsername}
 								<span class="input-status checking">
@@ -221,9 +251,14 @@
 						{#if usernameError}
 							<span class="form-error">{usernameError}</span>
 						{:else if usernameAvailable}
-							<span class="form-success">Username ist verfügbar</span>
+							<span class="form-success"
+								>Username ist verfügbar</span
+							>
 						{/if}
-						<span class="form-hint">Nur Kleinbuchstaben, Zahlen und Unterstriche. Min. 3 Zeichen.</span>
+						<span class="form-hint"
+							>Nur Kleinbuchstaben, Zahlen und Unterstriche. Min.
+							3 Zeichen.</span
+						>
 					</div>
 
 					<div class="form-group">
@@ -238,7 +273,9 @@
 							placeholder="Dein vollständiger Name"
 							required
 						/>
-						<span class="form-hint">Dieser Name wird auf deinem Profil angezeigt.</span>
+						<span class="form-hint"
+							>Dieser Name wird auf deinem Profil angezeigt.</span
+						>
 					</div>
 
 					<div class="form-actions">
@@ -253,22 +290,26 @@
 						</PrimaryButton>
 					</div>
 				</div>
-
 			{:else if step === 2}
 				<!-- Step 2: Additional Details -->
 				<div class="form-step">
 					<h2>Erzähle uns mehr über dich</h2>
 					<p class="step-description">
-						Diese Angaben sind optional, helfen aber anderen Fotografen, dich kennenzulernen.
+						Diese Angaben sind optional, helfen aber anderen
+						Fotografen, dich kennenzulernen.
 					</p>
 
 					<!-- Avatar -->
 					<div class="avatar-section">
-						<img
-							src={formData.avatar || $currentUser?.avatar || 'https://i.pravatar.cc/150'}
-							alt="Avatar"
-							class="current-avatar"
-						/>
+						{#if formData.avatar}
+							<img
+								src={formData.avatar}
+								alt="Avatar"
+								class="current-avatar"
+							/>
+						{:else}
+							<div class="avatar-placeholder"></div>
+						{/if}
 						<div class="avatar-info">
 							<h3>Profilbild</h3>
 							<p>Lade ein Foto von dir hoch</p>
@@ -291,7 +332,9 @@
 							placeholder="Erzähle etwas über dich und deine Fotografie..."
 							rows="3"
 						></textarea>
-						<span class="form-hint">{formData.bio.length} / 500 Zeichen</span>
+						<span class="form-hint"
+							>{formData.bio.length} / 500 Zeichen</span
+						>
 					</div>
 
 					<div class="form-row">
@@ -323,17 +366,11 @@
 					</div>
 
 					<div class="form-actions">
-						<SecondaryButton
-							type="button"
-							on:click={prevStep}
-						>
+						<SecondaryButton type="button" on:click={prevStep}>
 							<ArrowLeft size={18} />
 							Zurück
 						</SecondaryButton>
-						<PrimaryButton
-							type="submit"
-							disabled={loading}
-						>
+						<PrimaryButton type="submit" disabled={loading}>
 							{#if loading}
 								<span class="loading"></span>
 								Speichern...
@@ -348,7 +385,9 @@
 		</form>
 
 		<p class="skip-hint">
-			Du kannst diese Angaben später jederzeit in deinen <a href="/profile/edit">Profileinstellungen</a> ändern.
+			Du kannst diese Angaben später jederzeit in deinen <a
+				href="/profile/edit">Profileinstellungen</a
+			> ändern.
 		</p>
 	</div>
 </div>
@@ -585,6 +624,15 @@
 		box-shadow: var(--shadow-sm);
 	}
 
+	.avatar-placeholder {
+		width: 80px;
+		height: 80px;
+		border-radius: 50%;
+		border: 1px solid var(--color-border);
+		background: white;
+		flex-shrink: 0;
+	}
+
 	.avatar-info h3 {
 		font-size: 1rem;
 		font-weight: 600;
@@ -624,7 +672,9 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	/* Skip Hint */
@@ -738,6 +788,12 @@
 			border-radius: var(--radius-md);
 		}
 
+		/* Keep special padding for username input with @ prefix */
+		.input-with-prefix input {
+			padding-left: calc(var(--spacing-md) + 1.25rem);
+			padding-right: calc(var(--spacing-md) + 2rem);
+		}
+
 		.form-hint {
 			font-size: 0.6875rem;
 		}
@@ -751,6 +807,11 @@
 		}
 
 		.current-avatar {
+			width: 72px;
+			height: 72px;
+		}
+
+		.avatar-placeholder {
 			width: 72px;
 			height: 72px;
 		}
@@ -818,6 +879,12 @@
 
 		.step-line {
 			width: 32px;
+		}
+
+		.current-avatar,
+		.avatar-placeholder {
+			width: 64px;
+			height: 64px;
 		}
 	}
 
