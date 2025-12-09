@@ -1,93 +1,97 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { currentUser } from '$lib/stores/auth0';
-	import { getCompetitions, createSubmission, deleteUploadedImage } from '$lib/api.js';
-	import ImageUpload from '$lib/components/ImageUpload.svelte';
-	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
-	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
+	import { onMount, onDestroy } from "svelte";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
+	import { currentUser, login } from "$lib/stores/auth0";
+	import {
+		getCompetitions,
+		createSubmission,
+		deleteUploadedImage,
+	} from "$lib/api.js";
+	import ImageUpload from "$lib/components/ImageUpload.svelte";
+	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
+	import PrimaryButton from "$lib/components/PrimaryButton.svelte";
 
 	let competitions = [];
-	let selectedCompetition = $page.url.searchParams.get('competition') || '';
-	let title = '';
-	let description = '';
-	let imageUrl = '';
-	let camera = '';
-	let lens = '';
-	let settings = '';
+	let selectedCompetition = $page.url.searchParams.get("competition") || "";
+	let title = "";
+	let description = "";
+	let imageUrl = "";
+	let camera = "";
+	let lens = "";
+	let settings = "";
 	let isSubmitting = false;
 	let loading = true;
 	let submissionCreated = false; // Track if submission was successfully created
 
 	onMount(async () => {
 		try {
-			const allCompetitions = await getCompetitions('active');
+			const allCompetitions = await getCompetitions("active");
 			// Filter nur Competitions, deren Deadline noch nicht abgelaufen ist
 			const now = new Date();
-			competitions = allCompetitions.filter(comp => {
+			competitions = allCompetitions.filter((comp) => {
 				const deadline = new Date(comp.deadline);
 				return deadline > now;
 			});
 		} catch (error) {
-			console.error('Error loading competitions:', error);
+			console.error("Error loading competitions:", error);
 		} finally {
 			loading = false;
 		}
 	});
-	
+
 	function handleImageUpload(url) {
 		imageUrl = url;
 	}
-	
-async function handleSubmit() {
-	if (!selectedCompetition || !imageUrl) {
-		alert('Bitte wähle einen Wettbewerb und lade ein Bild hoch');
-		return;
+
+	async function handleSubmit() {
+		if (!selectedCompetition || !imageUrl) {
+			alert("Bitte wähle einen Wettbewerb und lade ein Bild hoch");
+			return;
+		}
+
+		if (!$currentUser) {
+			alert("Bitte logge dich ein!");
+			return;
+		}
+
+		isSubmitting = true;
+
+		try {
+			const submissionData = {
+				competitionId: selectedCompetition,
+				userId: $currentUser._id,
+				title: title,
+				description: description,
+				imageUrl: imageUrl,
+				metadata: {
+					camera: camera,
+					lens: lens,
+					settings: settings,
+				},
+			};
+
+			await createSubmission(submissionData);
+			submissionCreated = true; // Mark as successfully created
+			alert("Submission erfolgreich eingereicht! 🎉");
+
+			// Reset form
+			title = "";
+			description = "";
+			camera = "";
+			lens = "";
+			settings = "";
+			selectedCompetition = "";
+			imageUrl = "";
+
+			goto("/competitions");
+		} catch (error) {
+			console.error("Submission error:", error);
+			alert("Fehler beim Einreichen: " + error.message);
+		} finally {
+			isSubmitting = false;
+		}
 	}
-
-	if (!$currentUser) {
-		alert('Bitte logge dich ein!');
-		return;
-	}
-
-	isSubmitting = true;
-
-	try {
-		const submissionData = {
-			competitionId: selectedCompetition,
-			userId: $currentUser._id,
-			title: title,
-			description: description,
-			imageUrl: imageUrl,
-			metadata: {
-				camera: camera,
-				lens: lens,
-				settings: settings
-			}
-		};
-
-		await createSubmission(submissionData);
-		submissionCreated = true; // Mark as successfully created
-		alert('Submission erfolgreich eingereicht! 🎉');
-
-		// Reset form
-		title = '';
-		description = '';
-		camera = '';
-		lens = '';
-		settings = '';
-		selectedCompetition = '';
-		imageUrl = '';
-
-		goto('/competitions');
-	} catch (error) {
-		console.error('Submission error:', error);
-		alert('Fehler beim Einreichen: ' + error.message);
-	} finally {
-		isSubmitting = false;
-	}
-}
 
 	// Cleanup on component destroy (page navigation/refresh)
 	onDestroy(async () => {
@@ -96,7 +100,7 @@ async function handleSubmit() {
 			try {
 				await deleteUploadedImage(imageUrl);
 			} catch (error) {
-				console.error('Error cleaning up image:', error);
+				console.error("Error cleaning up image:", error);
 			}
 		}
 	});
@@ -111,135 +115,154 @@ async function handleSubmit() {
 		<div class="page-header">
 			<div>
 				<h1>Foto einreichen</h1>
-				<p>Reiche dein Foto für einen Wettbewerb ein und zeige der Community dein Können!</p>
+				<p>
+					Reiche dein Foto für einen Wettbewerb ein und zeige der
+					Community dein Können!
+				</p>
 			</div>
 		</div>
-	
-	{#if loading}
-		<div class="loading-state">
-			<span class="loading"></span>
-			<p>Lade Wettbewerbe...</p>
-		</div>
-	{:else if !$currentUser}
-		<div class="login-prompt">
-			<h3>Anmeldung erforderlich</h3>
-			<p>Du musst eingeloggt sein, um Fotos einzureichen.</p>
-			<PrimaryButton>Anmelden</PrimaryButton>
-		</div>
-	{:else}
-		<form class="submission-form" on:submit|preventDefault={handleSubmit}>
-			<!-- Competition Selection -->
-			<section class="form-section">
-				<h2>Wettbewerb</h2>
-				<div class="form-group">
-					<label for="competition">Wettbewerb auswählen *</label>
-					<select id="competition" bind:value={selectedCompetition} required>
-						<option value="">-- Wähle einen Wettbewerb --</option>
-						{#each competitions as competition}
-							<option value={competition._id}>{competition.title}</option>
-						{/each}
-					</select>
-					{#if competitions.length === 0}
-						<span class="error-message">Aktuell keine aktiven Wettbewerbe verfügbar.</span>
-					{/if}
-				</div>
-			</section>
 
-			<!-- Image Upload -->
-			<section class="form-section">
-				<h2>Bild</h2>
-				<div class="form-group">
-					<label>Bild hochladen *</label>
-					<ImageUpload
-						onUploadComplete={handleImageUpload}
-						currentImageUrl={imageUrl}
-					/>
-					<span class="help-text">Erlaubte Formate: JPEG, PNG, WebP (max. 100MB, wird komprimiert)</span>
-				</div>
-			</section>
-
-			<!-- Basic Information -->
-			<section class="form-section">
-				<h2>Informationen</h2>
-
-				<div class="form-group">
-					<label for="title">Titel *</label>
-					<input
-						type="text"
-						id="title"
-						bind:value={title}
-						placeholder="z.B. Limmat bei Nacht"
-						maxlength="100"
-						required
-					/>
-				</div>
-
-				<div class="form-group">
-					<label for="description">Beschreibung *</label>
-					<textarea
-						id="description"
-						bind:value={description}
-						placeholder="Erzähle die Geschichte hinter deinem Foto..."
-						rows="5"
-						required
-					></textarea>
-				</div>
-			</section>
-
-			<!-- Technical Details -->
-			<section class="form-section">
-				<h2>Technische Details (Optional)</h2>
-
-				<div class="form-group">
-					<label for="camera">Kamera</label>
-					<input
-						type="text"
-						id="camera"
-						bind:value={camera}
-						placeholder="z.B. Sony A7III"
-					/>
-				</div>
-
-				<div class="form-group">
-					<label for="lens">Objektiv</label>
-					<input
-						type="text"
-						id="lens"
-						bind:value={lens}
-						placeholder="z.B. 24-70mm f/2.8"
-					/>
-				</div>
-
-				<div class="form-group">
-					<label for="settings">Einstellungen</label>
-					<input
-						type="text"
-						id="settings"
-						bind:value={settings}
-						placeholder="z.B. f/2.8, 1/125s, ISO 800"
-					/>
-				</div>
-			</section>
-
-			<!-- Submit Button -->
-			<div class="form-actions">
-				<SecondaryButton href="/competitions">
-					Abbrechen
-				</SecondaryButton>
-				<PrimaryButton
-					type="submit"
-					disabled={isSubmitting || !imageUrl}
-				>
-					{#if isSubmitting}
-						<span class="loading"></span>
-						<span>Wird eingereicht...</span>
-					{:else}
-						Foto einreichen
-					{/if}
-				</PrimaryButton>
+		{#if loading}
+			<div class="loading-state">
+				<span class="loading"></span>
+				<p>Lade Wettbewerbe...</p>
 			</div>
-		</form>
-	{/if}
+		{:else if !$currentUser}
+			<div class="login-prompt">
+				<h3>Anmeldung erforderlich</h3>
+				<p>Du musst eingeloggt sein, um Fotos einzureichen.</p>
+				<PrimaryButton on:click={login}>Anmelden</PrimaryButton>
+			</div>
+		{:else}
+			<form
+				class="submission-form"
+				on:submit|preventDefault={handleSubmit}
+			>
+				<!-- Competition Selection -->
+				<section class="form-section">
+					<h2>Wettbewerb</h2>
+					<div class="form-group">
+						<label for="competition">Wettbewerb auswählen *</label>
+						<select
+							id="competition"
+							bind:value={selectedCompetition}
+							required
+						>
+							<option value=""
+								>-- Wähle einen Wettbewerb --</option
+							>
+							{#each competitions as competition}
+								<option value={competition._id}
+									>{competition.title}</option
+								>
+							{/each}
+						</select>
+						{#if competitions.length === 0}
+							<span class="error-message"
+								>Aktuell keine aktiven Wettbewerbe verfügbar.</span
+							>
+						{/if}
+					</div>
+				</section>
+
+				<!-- Image Upload -->
+				<section class="form-section">
+					<h2>Bild</h2>
+					<div class="form-group">
+						<label>Bild hochladen *</label>
+						<ImageUpload
+							onUploadComplete={handleImageUpload}
+							currentImageUrl={imageUrl}
+						/>
+						<span class="help-text"
+							>Erlaubte Formate: JPEG, PNG, WebP (max. 100MB, wird
+							komprimiert)</span
+						>
+					</div>
+				</section>
+
+				<!-- Basic Information -->
+				<section class="form-section">
+					<h2>Informationen</h2>
+
+					<div class="form-group">
+						<label for="title">Titel *</label>
+						<input
+							type="text"
+							id="title"
+							bind:value={title}
+							placeholder="z.B. Limmat bei Nacht"
+							maxlength="100"
+							required
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="description">Beschreibung *</label>
+						<textarea
+							id="description"
+							bind:value={description}
+							placeholder="Erzähle die Geschichte hinter deinem Foto..."
+							rows="5"
+							required
+						></textarea>
+					</div>
+				</section>
+
+				<!-- Technical Details -->
+				<section class="form-section">
+					<h2>Technische Details (Optional)</h2>
+
+					<div class="form-group">
+						<label for="camera">Kamera</label>
+						<input
+							type="text"
+							id="camera"
+							bind:value={camera}
+							placeholder="z.B. Sony A7III"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="lens">Objektiv</label>
+						<input
+							type="text"
+							id="lens"
+							bind:value={lens}
+							placeholder="z.B. 24-70mm f/2.8"
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="settings">Einstellungen</label>
+						<input
+							type="text"
+							id="settings"
+							bind:value={settings}
+							placeholder="z.B. f/2.8, 1/125s, ISO 800"
+						/>
+					</div>
+				</section>
+
+				<!-- Submit Button -->
+				<div class="form-actions">
+					<SecondaryButton href="/competitions">
+						Abbrechen
+					</SecondaryButton>
+					<PrimaryButton
+						type="submit"
+						disabled={isSubmitting || !imageUrl}
+					>
+						{#if isSubmitting}
+							<span class="loading"></span>
+							<span>Wird eingereicht...</span>
+						{:else}
+							Foto einreichen
+						{/if}
+					</PrimaryButton>
+				</div>
+			</form>
+		{/if}
 	</div>
 </div>
 

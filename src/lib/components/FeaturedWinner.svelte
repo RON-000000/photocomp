@@ -149,6 +149,8 @@
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: var(--spacing-xl);
+        /* Safari grid fixes */
+        align-items: start;
     }
 
     .winner-card {
@@ -161,6 +163,11 @@
         text-decoration: none;
         color: inherit;
         transition: all 0.3s ease;
+        /* Safari fixes - prevent layout recalculation loop */
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+        contain: layout;
+        min-width: 0;
     }
 
     .winner-card:hover {
@@ -185,6 +192,22 @@
         position: relative;
         aspect-ratio: 4 / 3;
         overflow: hidden;
+        /* Safari fixes */
+        min-height: 0;
+        flex-shrink: 0;
+    }
+
+    /* Safari aspect-ratio fallback */
+    @supports not (aspect-ratio: 4 / 3) {
+        .winner-image-wrapper {
+            padding-top: 75%; /* 3/4 = 0.75 */
+        }
+
+        .winner-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
     }
 
     .winner-image {
@@ -192,6 +215,8 @@
         height: 100%;
         object-fit: cover;
         transition: transform 0.6s ease;
+        /* Prevent Safari from resizing */
+        flex-shrink: 0;
     }
 
     .winner-card:hover .winner-image {
@@ -259,6 +284,7 @@
         flex: 1;
         display: -webkit-box;
         -webkit-line-clamp: 2;
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }

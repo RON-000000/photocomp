@@ -22,10 +22,13 @@ export async function POST(event) {
 
 		// Check if user exists
 		let user = await users.findOne({ auth0Id });
+		let isNewUser = false;
 
 		if (!user) {
+			isNewUser = true;
+
 			// Generate unique username
-			let uniqueUsername = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+			let uniqueUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
 			let counter = 1;
 
 			while (await users.findOne({ username: uniqueUsername })) {
@@ -33,7 +36,7 @@ export async function POST(event) {
 				counter++;
 			}
 
-			// Create new user
+			// Create new user with profileCompleted = false
 			const newUser = {
 				_id: generateId(),
 				auth0Id,
@@ -45,6 +48,7 @@ export async function POST(event) {
 				location: 'Zürich, Schweiz',
 				website: '',
 				role: 'user', // Default role
+				profileCompleted: false, // New users need to complete profile
 				stats: {
 					submissions: 0,
 					wins: 0,
@@ -72,7 +76,10 @@ export async function POST(event) {
 		// Remove sensitive data
 		const { password, ...safeUser } = user;
 
-		return json(safeUser);
+		return json({
+			...safeUser,
+			isNewUser
+		});
 	} catch (error) {
 		console.error('User sync error:', error);
 		return json({ error: error.message }, { status: 500 });

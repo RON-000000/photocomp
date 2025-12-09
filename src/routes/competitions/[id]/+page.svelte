@@ -932,12 +932,18 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: var(--spacing-2xl);
+		/* Safari grid fixes */
+		align-items: start;
 	}
 
 	.submission-wrapper {
 		all: unset;
 		cursor: pointer;
 		display: block;
+		/* Safari fixes - prevent layout recalculation loop */
+		-webkit-transform: translateZ(0);
+		contain: layout;
+		min-width: 0;
 	}
 
 	.empty-state {

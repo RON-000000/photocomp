@@ -97,20 +97,26 @@ export async function handleCallback() {
 		goto('/');
 		return;
 	}
-	
+
 	try {
 		const searchParams = new URLSearchParams(window.location.search);
-		
+
 		if (searchParams.has('code') && searchParams.has('state')) {
 			await clientInstance.handleRedirectCallback();
-			
+
 			const authenticated = await clientInstance.isAuthenticated();
 			isAuthenticated.set(authenticated);
-			
+
 			if (authenticated) {
 				const user = await clientInstance.getUser();
-				await syncUserWithBackend(user);
-				goto('/');
+				const syncResult = await syncUserWithBackend(user);
+
+				// Redirect new users to profile setup
+				if (syncResult?.isNewUser || syncResult?.profileCompleted === false) {
+					goto('/profile/setup');
+				} else {
+					goto('/');
+				}
 			} else {
 				goto('/');
 			}
@@ -161,12 +167,16 @@ async function syncUserWithBackend(auth0User) {
 
 			// Set user cookie for server-side auth
 			document.cookie = `user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict`;
+
+			return user; // Return user data including isNewUser flag
 		} else {
 			const error = await response.text();
 			console.error('❌ Sync failed:', error);
+			return null;
 		}
 	} catch (error) {
 		console.error('💥 User sync error:', error);
+		return null;
 	}
 }
 

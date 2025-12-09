@@ -239,6 +239,8 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 		gap: var(--spacing-2xl);
+		/* Safari grid fixes */
+		align-items: start;
 	}
 
 	/* Mobile Optimizations */

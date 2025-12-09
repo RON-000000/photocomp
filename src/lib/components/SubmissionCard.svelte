@@ -110,6 +110,10 @@
 		transition: all 0.3s ease;
 		cursor: pointer;
 		width: 100%;
+		/* Safari fixes - prevent layout recalculation loop */
+		-webkit-transform: translateZ(0);
+		contain: layout;
+		min-width: 0;
 	}
 
 	.submission-card:hover {
@@ -126,6 +130,22 @@
 		margin: 0;
 		padding: 0;
 		display: block;
+		/* Safari fixes */
+		min-height: 0;
+		flex-shrink: 0;
+	}
+
+	/* Safari aspect-ratio fallback */
+	@supports not (aspect-ratio: 4 / 3) {
+		.image-wrapper {
+			padding-top: 75%; /* 3/4 = 0.75 */
+		}
+
+		.image-wrapper img {
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
 	}
 
 	.image-wrapper img {
@@ -133,6 +153,8 @@
 		height: 100%;
 		object-fit: cover;
 		transition: transform 0.6s ease;
+		/* Prevent Safari from resizing */
+		flex-shrink: 0;
 	}
 
 	.submission-card:hover .image-wrapper img {
@@ -188,6 +210,7 @@
 		line-height: 1.6;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}

@@ -601,6 +601,12 @@ export async function getUserByUsername(username) {
 export async function updateUserProfile(userId, updates) {
 	const users = await getCollection('users');
 
+	// Get current user
+	const currentUser = await users.findOne({ _id: userId });
+	if (!currentUser) {
+		throw new Error('User nicht gefunden');
+	}
+
 	const allowedUpdates = {
 		name: updates.name,
 		bio: updates.bio,
@@ -608,6 +614,37 @@ export async function updateUserProfile(userId, updates) {
 		website: updates.website,
 		avatar: updates.avatar
 	};
+
+	// Handle username change
+	if (updates.username && updates.username !== currentUser.username) {
+		// Validate username format
+		const normalizedUsername = updates.username.toLowerCase().trim();
+
+		if (!/^[a-z0-9_]+$/.test(normalizedUsername)) {
+			throw new Error('Username darf nur Kleinbuchstaben, Zahlen und Unterstriche enthalten');
+		}
+
+		if (normalizedUsername.length < 3) {
+			throw new Error('Username muss mindestens 3 Zeichen haben');
+		}
+
+		if (normalizedUsername.length > 30) {
+			throw new Error('Username darf maximal 30 Zeichen haben');
+		}
+
+		// Check if username is available
+		const existingUser = await users.findOne({ username: normalizedUsername });
+		if (existingUser) {
+			throw new Error('Dieser Username ist bereits vergeben');
+		}
+
+		allowedUpdates.username = normalizedUsername;
+	}
+
+	// Handle profileCompleted flag
+	if (updates.profileCompleted !== undefined) {
+		allowedUpdates.profileCompleted = updates.profileCompleted;
+	}
 
 	// Remove undefined values
 	Object.keys(allowedUpdates).forEach(key =>

@@ -96,7 +96,8 @@
 
 <style>
 	.competition-card {
-		display: block;
+		display: flex;
+		flex-direction: column;
 		background: white;
 		border-radius: var(--radius-lg);
 		overflow: hidden;
@@ -104,6 +105,10 @@
 		transition: all 0.3s ease;
 		text-decoration: none;
 		color: inherit;
+		/* Safari fixes - prevent layout recalculation loop */
+		-webkit-transform: translateZ(0);
+		min-width: 0;
+		contain: layout;
 	}
 
 	.competition-card:hover {
@@ -117,6 +122,21 @@
 		overflow: hidden;
 		aspect-ratio: 16 / 9;
 		background: var(--color-surface);
+		/* Safari fallback for aspect-ratio */
+		min-height: 0;
+	}
+
+	/* Safari aspect-ratio fallback */
+	@supports not (aspect-ratio: 16 / 9) {
+		.card-image-wrapper {
+			padding-top: 56.25%; /* 9/16 = 0.5625 */
+		}
+
+		.card-image-wrapper .card-image {
+			position: absolute;
+			top: 0;
+			left: 0;
+		}
 	}
 
 	.card-image {
@@ -124,6 +144,8 @@
 		height: 100%;
 		object-fit: cover;
 		transition: transform 0.6s ease;
+		/* Prevent Safari from resizing */
+		flex-shrink: 0;
 	}
 
 	.competition-card:hover .card-image {
