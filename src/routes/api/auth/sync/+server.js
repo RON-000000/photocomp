@@ -27,11 +27,13 @@ export async function POST(event) {
 		if (!user) {
 			isNewUser = true;
 
-			// Generate unique username
-			let uniqueUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
+			// Generate unique username (username is already sanitized from frontend)
+			let uniqueUsername = username;
 			let counter = 1;
 
+			// Check if username is already taken
 			while (await users.findOne({ username: uniqueUsername })) {
+				// Append counter to make it unique
 				uniqueUsername = `${username}${counter}`;
 				counter++;
 			}

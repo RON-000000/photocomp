@@ -26,7 +26,7 @@ export async function initAuth0() {
 				redirect_uri: window.location.origin + '/auth/callback'
 			},
 			cacheLocation: 'localstorage',
-			useRefreshTokens: true
+			useRefreshTokens: false // iOS Safari compatibility - uses silent auth instead
 		});
 		
 		clientInstance = client;
@@ -144,6 +144,23 @@ async function syncUserWithBackend(auth0User) {
 			username = auth0User.name.toLowerCase().replace(/\s+/g, '');
 		} else {
 			username = 'user' + Date.now();
+		}
+
+		// Sanitize username: remove invalid characters before validation
+		// Allow only: a-zA-Z0-9_-
+		// Convert: dots→underscores, spaces→hyphens, remove everything else
+		username = username
+			.toLowerCase()
+			.replace(/\./g, '_')        // dots → underscores
+			.replace(/\s+/g, '-')       // spaces → hyphens
+			.replace(/[^a-z0-9_-]/g, '') // remove invalid chars
+			.replace(/^[_-]+/, '')      // remove leading _-
+			.replace(/[_-]+$/, '')      // remove trailing _-
+			.slice(0, 30);              // max 30 chars
+
+		// Ensure minimum length (3 chars)
+		if (username.length < 3) {
+			username = 'user_' + Date.now().toString().slice(-6);
 		}
 
 		const response = await fetch('/api/auth/sync', {
