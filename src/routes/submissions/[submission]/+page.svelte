@@ -353,9 +353,8 @@
 					</div>
 
 					<!-- Vote Button -->
-					<button
-						class="vote-button"
-						class:voted={hasVoted}
+					<PrimaryButton
+						fullWidth
 						disabled={!$currentUser || voting || hasVoted}
 						on:click={handleVote}
 					>
@@ -367,7 +366,7 @@
 									? "Voting..."
 									: "Vote für diese Submission"}</span
 						>
-					</button>
+					</PrimaryButton>
 				</div>
 
 				<!-- Comments Section -->
@@ -755,7 +754,7 @@
 		gap: var(--spacing-sm);
 		padding: var(--spacing-md);
 		background: var(--color-primary);
-		color: white;
+		color: rgb(0, 0, 0);
 		border-radius: var(--radius-md);
 		font-weight: 600;
 		cursor: pointer;
