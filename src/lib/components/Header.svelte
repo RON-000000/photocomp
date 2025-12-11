@@ -52,6 +52,9 @@
 		if (mobileMenuOpen) {
 			mobileMenuOpen = false;
 		}
+		if (userMenuOpen) {
+			userMenuOpen = false;
+		}
 	}
 </script>
 
