@@ -32,13 +32,30 @@
 
 	function handleClickOutside(event) {
 		const target = event.target;
+
+		// Close user menu if clicking outside
 		if (!target.closest(".user-menu-wrapper")) {
 			userMenuOpen = false;
+		}
+
+		// Close mobile menu if clicking outside
+		if (!target.closest(".nav-links") && !target.closest(".mobile-menu-btn")) {
+			mobileMenuOpen = false;
+		}
+	}
+
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
+	function handleScroll() {
+		if (mobileMenuOpen) {
+			mobileMenuOpen = false;
 		}
 	}
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window on:click={handleClickOutside} on:scroll={handleScroll} />
 
 <header class="header">
 	<div class="container">
@@ -49,10 +66,10 @@
 			</a>
 
 			<div class="nav-links" class:open={mobileMenuOpen}>
-				<a href="/">Home</a>
-				<a href="/competitions">Wettbewerbe</a>
+				<a href="/" on:click={closeMobileMenu}>Home</a>
+				<a href="/competitions" on:click={closeMobileMenu}>Wettbewerbe</a>
 				{#if $isAuthenticated}
-					<a href="/submit">Einreichen</a>
+					<a href="/submit" on:click={closeMobileMenu}>Einreichen</a>
 				{/if}
 			</div>
 
@@ -254,6 +271,10 @@
 		color: var(--color-text-primary);
 		cursor: pointer;
 		padding: var(--spacing-xs);
+	}
+
+	.mobile-menu-btn :global(svg) {
+		pointer-events: none;
 	}
 
 	/* Mobile Styles */
