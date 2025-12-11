@@ -4,6 +4,7 @@
 	import CompetitionCard from '$lib/components/CompetitionCard.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
+	import SecondaryButton from '$lib/components/SecondaryButton.svelte';
 	import { Filter } from 'lucide-svelte';
 	import PrimaryButton from '$lib/components/PrimaryButton.svelte';
 
@@ -11,8 +12,17 @@
 	let filter = 'active'; // all, active, voting, completed
 	let loading = true;
 	let error = null;
+	let visibleCount = 6; // Initial number of competitions to show
+	let loadingMore = false;
 	
 	$: filteredCompetitions = filterCompetitions(competitions, filter);
+	$: visibleCompetitions = filteredCompetitions.slice(0, visibleCount);
+	$: hasMore = visibleCount < filteredCompetitions.length;
+
+	// Reset visible count when filter changes
+	$: if (filter) {
+		visibleCount = 6;
+	}
 	
 	onMount(async () => {
 		await loadCompetitions();
@@ -40,6 +50,14 @@
 	function getFilterCount(status) {
 		if (status === 'all') return competitions.length;
 		return filterCompetitions(competitions, status).length;
+	}
+
+	async function loadMore() {
+		loadingMore = true;
+		// Simulate loading delay for better UX
+		await new Promise(resolve => setTimeout(resolve, 300));
+		visibleCount += 6;
+		loadingMore = false;
 	}
 </script>
 
@@ -111,10 +129,22 @@
 			<!-- Competitions Grid -->
 			{#if filteredCompetitions.length > 0}
 				<div class="competitions-grid">
-					{#each filteredCompetitions as competition}
+					{#each visibleCompetitions as competition}
 						<CompetitionCard {competition} />
 					{/each}
 				</div>
+
+				<!-- Load More Button -->
+				{#if hasMore}
+					<div class="load-more-wrapper">
+						<SecondaryButton
+							on:click={loadMore}
+							disabled={loadingMore}
+						>
+							{loadingMore ? 'Lädt...' : 'Weitere laden'}
+						</SecondaryButton>
+					</div>
+				{/if}
 			{:else}
 				<EmptyState
 					message="Keine Wettbewerbe in dieser Kategorie gefunden."
@@ -241,6 +271,13 @@
 		gap: var(--spacing-2xl);
 		/* Safari grid fixes */
 		align-items: start;
+	}
+
+	.load-more-wrapper {
+		display: flex;
+		justify-content: center;
+		margin-top: var(--spacing-3xl);
+		padding-top: var(--spacing-2xl);
 	}
 
 	/* Mobile Optimizations */

@@ -24,7 +24,7 @@
 	$: progress = submissions.length > 0 ? `${currentIndex + 1} / ${submissions.length}` : '0 / 0';
 	$: isJury = $currentUser && ($currentUser.role === 'jury' || $currentUser.role === 'admin');
 	$: isAdmin = $currentUser && $currentUser.role === 'admin';
-	$: canCompleteCompetition = competition?.status === 'voting' && isJury;
+	$: canCompleteCompetition = competition?.status === 'voting' && isAdmin; // Only admin can complete
 	$: canEditRating = isAdmin || competition?.status !== 'completed';
 
 	// Load rating when submission changes

@@ -11,6 +11,7 @@
 	import { currentUser } from "$lib/stores/auth0.js";
 	import SubmissionCard from "$lib/components/SubmissionCard.svelte";
 	import Leaderboard from "$lib/components/Leaderboard.svelte";
+	import SecondaryButton from "$lib/components/SecondaryButton.svelte";
 	import {
 		Calendar,
 		Users,
@@ -35,6 +36,8 @@
 	let sortBy = "date"; // date, votes, jury, comments
 	let sortOrder = "desc"; // desc or asc
 	let searchQuery = "";
+	let visibleCount = 4; // Initial number of submissions to show
+	let loadingMore = false;
 
 	$: competitionId = $page.params.id;
 	$: isAdmin = $currentUser && $currentUser.role === "admin";
@@ -44,6 +47,8 @@
 		sortBy,
 		sortOrder,
 	);
+	$: visibleSubmissions = sortedSubmissions.slice(0, visibleCount);
+	$: hasMore = visibleCount < sortedSubmissions.length;
 
 	onMount(async () => {
 		await loadData();
@@ -165,6 +170,14 @@
 
 	function toggleSortOrder() {
 		sortOrder = sortOrder === "desc" ? "asc" : "desc";
+	}
+
+	async function loadMore() {
+		loadingMore = true;
+		// Simulate loading delay for better UX
+		await new Promise(resolve => setTimeout(resolve, 300));
+		visibleCount += 4;
+		loadingMore = false;
 	}
 </script>
 
@@ -356,6 +369,7 @@
 						competitionId={competition._id}
 						{submissions}
 						{competition}
+						showTopOnly={true}
 					/>
 				</section>
 
@@ -452,7 +466,7 @@
 						</div>
 
 						<div class="submissions-grid">
-							{#each sortedSubmissions as submission}
+							{#each visibleSubmissions as submission}
 								<button
 									class="submission-wrapper"
 									on:click={() =>
@@ -465,6 +479,18 @@
 								</button>
 							{/each}
 						</div>
+
+						<!-- Load More Button -->
+						{#if hasMore}
+							<div class="load-more-wrapper">
+								<SecondaryButton
+									on:click={loadMore}
+									disabled={loadingMore}
+								>
+									{loadingMore ? 'Lädt...' : 'Weitere laden'}
+								</SecondaryButton>
+							</div>
+						{/if}
 					{:else}
 						<div class="empty-state">
 							<p>Noch keine Submissions.</p>
@@ -934,6 +960,14 @@
 		gap: var(--spacing-2xl);
 		/* Safari grid fixes */
 		align-items: start;
+	}
+
+	.load-more-wrapper {
+		display: flex;
+		justify-content: center;
+		margin-top: var(--spacing-2xl);
+		padding-top: var(--spacing-2xl);
+		border-top: 1px solid var(--color-border);
 	}
 
 	.submission-wrapper {
