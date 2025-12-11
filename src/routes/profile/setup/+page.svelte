@@ -29,7 +29,7 @@
 		bio: "",
 		location: "Zürich, Schweiz",
 		website: "",
-		avatar: "",
+		avatar: "/profilepic.png",
 	};
 
 	onMount(() => {
@@ -47,7 +47,7 @@
 			bio: $currentUser.bio || "",
 			location: $currentUser.location || "Zürich, Schweiz",
 			website: $currentUser.website || "",
-			avatar: $currentUser.avatar || "",
+			avatar: $currentUser.avatar || "/profilepic.png",
 		};
 	});
 
@@ -301,15 +301,11 @@
 
 					<!-- Avatar -->
 					<div class="avatar-section">
-						{#if formData.avatar}
-							<img
-								src={formData.avatar}
-								alt="Avatar"
-								class="current-avatar"
-							/>
-						{:else}
-							<div class="avatar-placeholder"></div>
-						{/if}
+						<img
+							src={formData.avatar || '/profilepic.png'}
+							alt="Avatar"
+							class="current-avatar"
+						/>
 						<div class="avatar-info">
 							<h3>Profilbild</h3>
 							<p>Lade ein Foto von dir hoch</p>
@@ -624,14 +620,6 @@
 		box-shadow: var(--shadow-sm);
 	}
 
-	.avatar-placeholder {
-		width: 80px;
-		height: 80px;
-		border-radius: 50%;
-		border: 1px solid var(--color-border);
-		background: white;
-		flex-shrink: 0;
-	}
 
 	.avatar-info h3 {
 		font-size: 1rem;
@@ -811,11 +799,6 @@
 			height: 72px;
 		}
 
-		.avatar-placeholder {
-			width: 72px;
-			height: 72px;
-		}
-
 		.avatar-info h3 {
 			font-size: 0.9375rem;
 		}
@@ -881,8 +864,7 @@
 			width: 32px;
 		}
 
-		.current-avatar,
-		.avatar-placeholder {
+		.current-avatar {
 			width: 64px;
 			height: 64px;
 		}

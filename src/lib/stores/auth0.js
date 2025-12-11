@@ -170,7 +170,7 @@ async function syncUserWithBackend(auth0User) {
 				auth0Id: auth0User.sub,
 				email: auth0User.email || `${auth0User.sub}@noemail.local`,
 				name: auth0User.name || 'PhotoZürich User',
-				avatar: auth0User.picture || 'https://i.pravatar.cc/150?u=' + auth0User.sub,
+				avatar: auth0User.picture || window.location.origin + '/profilepic.png',
 				username: username
 			})
 		});
